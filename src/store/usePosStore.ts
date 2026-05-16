@@ -13,10 +13,10 @@ interface POSState {
   crudModalOpen: boolean;
   editingProduct: Product | null;
   isLoadingProducts: boolean;
+  productsError: string | null;
 
   // Data State
   products: Product[];
-  totalProductCount: number; // ✅ total from DB for pagination display
 
   // Cart State
   sessions: Record<string, CartSession>;
@@ -57,8 +57,6 @@ interface POSState {
   refundByInvoice: (invoiceId: string) => Promise<string | null>;
 }
 
-const SUPABASE_PAGE_SIZE = 1000; // Supabase hard max per request
-
 export const usePosStore = create<POSState>()(
   persist(
     (set, get) => ({
@@ -72,9 +70,9 @@ export const usePosStore = create<POSState>()(
       crudModalOpen: false,
       editingProduct: null,
       isLoadingProducts: true,
+      productsError: null,
 
       products: [],
-      totalProductCount: 0,
 
       sessions: { t1: { number: 1, items: {}, discount: 0, discountType: 'fixed' } },
       activeTab: 't1',
@@ -97,88 +95,84 @@ export const usePosStore = create<POSState>()(
 
       // ==========================================
       // DATA ACTIONS (SUPABASE)
-      // Supabase caps each response at 1000 rows.
-      // We loop with .range() until we get everything.
       // ==========================================
       fetchProducts: async (branchId: string) => {
-  if (!branchId) return;
-  set({ isLoadingProducts: true });
+        if (!branchId) return;
+        set({ isLoadingProducts: true, productsError: null });
 
-  // ── DEBUG: verify client and auth ──
-  try {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('[fetchProducts] session:', session?.user?.id, 'error:', sessionError);
-    console.log('[fetchProducts] branchId:', branchId);
-  } catch (e) {
-    console.error('[fetchProducts] supabase client error:', e);
-  }
-
-        let allData: any[] = [];
-        let from = 0;
+        let allProducts: any[] = [];
+        let page = 0;
+        const pageSize = 1000;
         let hasMore = true;
 
-        while (hasMore) {
-          const { data, error } = await supabase
-            .from('products')
-            .select(`
-              id,
-              name,
-              barcode,
-              price,
-              stock,
-              cost,
-              is_variable_price,
-              variants (
+        try {
+          while (hasMore) {
+            const from = page * pageSize;
+            const to = from + pageSize - 1;
+
+            const { data, error } = await supabase
+              .from('products')
+              .select(`
                 id,
-                variant_name,
-                price
-              )
-            `)
-            .eq('branch_id', branchId)
-            .order('name', { ascending: true })
-            .range(from, from + SUPABASE_PAGE_SIZE - 1);
+                name,
+                barcode,
+                price,
+                stock,
+                cost,
+                is_variable_price,
+                variants (
+                  id,
+                  variant_name,
+                  price
+                )
+              `)
+              .eq('branch_id', branchId)
+              .order('name', { ascending: true })
+              .range(from, to);
 
-          if (error) {
-            console.error('[fetchProducts] error:', error.message);
-            set({ isLoadingProducts: false });
-            return;
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+              allProducts = [...allProducts, ...data];
+              if (data.length < pageSize) {
+                hasMore = false;
+              } else {
+                page++;
+              }
+            } else {
+              hasMore = false;
+            }
           }
 
-          if (data && data.length > 0) {
-            allData = [...allData, ...data];
-            from += SUPABASE_PAGE_SIZE;
-            // If we got fewer than the page size, we've reached the end
-            hasMore = data.length === SUPABASE_PAGE_SIZE;
-          } else {
-            hasMore = false;
-          }
+          const mappedData: Product[] = allProducts.map((item: any) => ({
+            id: item.id,
+            n: item.name,
+            b: item.barcode,
+            p: item.price,
+            s: item.stock,
+            cost: item.cost || 0,
+            is_var: item.is_variable_price || (item.variants?.length > 0),
+            v: item.variants?.map((variant: any) => ({
+              id: variant.id,
+              n: variant.variant_name,
+              p: variant.price,
+            })) || [],
+          }));
+
+          set({ products: mappedData, isLoadingProducts: false, productsError: null });
+
+        } catch (error: any) {
+          console.error('Supabase fetch error:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+          });
+          set({
+            isLoadingProducts: false,
+            productsError: error.message || 'Failed to load products',
+          });
         }
-
-        if (allData.length === 0) {
-          set({ products: [], totalProductCount: 0, isLoadingProducts: false });
-          return;
-        }
-
-        const mappedData: Product[] = allData.map((item: any) => ({
-          id: item.id,
-          n: item.name,
-          b: item.barcode,
-          p: item.price,
-          s: item.stock,
-          cost: item.cost,
-          is_var: item.is_variable_price || (item.variants?.length > 0),
-          v: item.variants?.map((variant: any) => ({
-            id: variant.id,
-            n: variant.variant_name,
-            p: variant.price,
-          })) || [],
-        }));
-
-        set({
-          products: mappedData,
-          totalProductCount: mappedData.length,
-          isLoadingProducts: false,
-        });
       },
 
       // ==========================================
@@ -230,7 +224,10 @@ export const usePosStore = create<POSState>()(
 
         if (items[key].qty === 0) delete items[key];
         set({
-          sessions: { ...state.sessions, [state.activeTab]: { ...state.sessions[state.activeTab], items } },
+          sessions: {
+            ...state.sessions,
+            [state.activeTab]: { ...state.sessions[state.activeTab], items },
+          },
           search: '',
         });
       },
@@ -242,7 +239,12 @@ export const usePosStore = create<POSState>()(
           items[key].qty += n;
           if (items[key].qty === 0) delete items[key];
         }
-        set({ sessions: { ...state.sessions, [state.activeTab]: { ...state.sessions[state.activeTab], items } } });
+        set({
+          sessions: {
+            ...state.sessions,
+            [state.activeTab]: { ...state.sessions[state.activeTab], items },
+          },
+        });
       },
 
       clearCart: () => {
@@ -385,6 +387,7 @@ export const usePosStore = create<POSState>()(
 
           usePosStore.setState({ queue: usePosStore.getState().queue.slice(1) });
           console.log(`[Supabase] Order ${orderToSync.id} synced.`);
+
         } catch (error: any) {
           const msg = error.message || JSON.stringify(error);
           if (msg.includes('duplicate key') || msg.includes('409')) {
