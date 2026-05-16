@@ -31,7 +31,7 @@ export default function POSLayout() {
   const sessions = usePosStore((s) => s.sessions);
   const activeTab = usePosStore((s) => s.activeTab);
   const queue = usePosStore((s) => s.queue);
-  const isSyncing = usePosStore((s) => s.isSyncing);
+  const syncing = usePosStore((s) => s.syncing);
   
   const processQueue = usePosStore((s) => s.processQueue);
   const openCrudModal = usePosStore((s) => s.openCrudModal);
@@ -47,9 +47,9 @@ export default function POSLayout() {
 
   // Queue Processing Effect
   useEffect(() => {
-    if (queue.length === 0 || isSyncing) return;
+    if (queue.length === 0 || syncing) return;
     processQueue();
-  }, [queue.length, isSyncing, processQueue]);
+  }, [queue.length, syncing, processQueue]);
 
   // ✅ Draggable divider logic
   useEffect(() => {
@@ -129,7 +129,8 @@ export default function POSLayout() {
         <div className="flex items-center gap-4">
           {queue.length > 0 && (
             <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 text-xs font-bold" title={`${queue.length} orders pending sync`}>
-              <i className={`fas fa-sync ${isSyncing ? 'fa-spin' : ''}`}></i>
+              
+              <i className={`fas fa-sync ${syncing ? 'fa-spin' : ''}`}></i>
               <span>{queue.length}</span>
             </div>
           )}

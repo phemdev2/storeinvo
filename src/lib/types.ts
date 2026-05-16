@@ -1,4 +1,13 @@
 // lib/types.ts
+
+// ── Branch & Auth Types ──────────────────────────
+export interface Branch {
+  id: string;
+  name: string;
+  location?: string; // ✅ ADDED: Optional to fix the TypeScript build error
+}
+
+// ── Product & Variant Types ───────────────────────
 export interface Variant {
   id: string | number;
   n: string; 
@@ -15,8 +24,10 @@ export interface Product {
   s: number; 
   v: Variant[];
   is_var?: boolean;
+  cost?: number; // ✅ ADDED: Used for profit calculations in the dashboard
 }
 
+// ── Cart & Order Types ────────────────────────────
 export interface CartItem {
   id: string | number;
   n: string;
@@ -36,8 +47,6 @@ export interface CartSession {
 
 export const CURRENCY = new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2 });
 
-// Add this to the bottom of lib/types.ts
-
 export interface Order {
   id: string;
   date: string;
@@ -46,10 +55,11 @@ export interface Order {
   total: number;
   raw_total: number;
   user_name: string;
-   customer_name?: string | null; 
+  customer_name?: string | null; 
   customer_phone?: string | null;
 }
 
+// ── Database Direct Mapping Types ─────────────────
 export interface DatabaseProduct {
   id: number;
   name: string;

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePosStore } from '@/store/usePosStore';
 import POSLayout from '@/components/POSLayout';
-import { Branch } from '@/types';
+import { Branch } from '@/lib/types';
 
 // --- Sub-Components ---
 
