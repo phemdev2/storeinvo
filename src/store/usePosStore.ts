@@ -445,12 +445,13 @@ export const usePosStore = create<POSState>()(
       },
     }),
     {
-      name: 'pos-cart-storage',
-      partialize: (state) => ({
-        sessions: state.sessions,
-        activeTab: state.activeTab,
-        queue: state.queue,
-      }),
-    }
+  name: 'pos-cart-storage',
+  partialize: (state) => ({
+    sessions: state.sessions,
+    activeTab: state.activeTab,
+    queue: state.queue,
+    products: state.products,
+  }),
+}
   )
 );

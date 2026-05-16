@@ -26,13 +26,10 @@ interface DashboardData {
   recent_orders: OrderRow[];
 }
 
-// ── Top Items ──────────────────────────────────────────
-// Wire this up by calling your Supabase RPC/query and setting topItems state.
-// Expected shape per row:
 interface TopItem {
-  item_name: string;     // product/item name
-  quantity_sold: number; // total units sold in the period
-  revenue: number;       // total revenue from this item
+  item_name: string;
+  quantity_sold: number;
+  revenue: number;
 }
 
 type ColorKey = 'purple' | 'green' | 'blue' | 'yellow' | 'emerald';
@@ -60,7 +57,6 @@ const PAYMENT_BADGE: Record<string, string> = {
   credit: 'bg-orange-50  text-orange-700  border border-orange-200',
 };
 
-// ── Sidebar nav config ────────────────────────────────
 const NAV = [
   { label: 'Dashboard',    icon: 'fa-gauge-high',   href: '/dashboard' },
   { label: 'Transactions', icon: 'fa-receipt',       href: '/transactions' },
@@ -71,17 +67,11 @@ const NAV = [
   { label: 'Settings',     icon: 'fa-gear',          href: '/settings' },
 ];
 
-// ── Helper Functions ──────────────────────────────────
 const getStartOfDay = (date: Date) => {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
+  const d = new Date(date); d.setHours(0, 0, 0, 0); return d.toISOString();
 };
-
 const getEndOfDay = (date: Date) => {
-  const d = new Date(date);
-  d.setHours(23, 59, 59, 999);
-  return d.toISOString();
+  const d = new Date(date); d.setHours(23, 59, 59, 999); return d.toISOString();
 };
 
 // ── Sub-Components ────────────────────────────────────
@@ -118,26 +108,16 @@ const Table = ({ data, onView }: { data: OrderRow[]; onView: (id: string) => voi
           <tbody className="divide-y divide-slate-50">
             {data.map((item, i) => (
               <tr key={i} className="hover:bg-slate-50/60 transition-colors">
-                <td className="px-4 py-3 font-mono text-[11px] text-slate-400">
-                  POS/{item.id.slice(0, 8)}
-                </td>
-                <td className="px-4 py-3 text-slate-700 font-medium text-xs">
-                  {item.branch_name || '—'}
-                </td>
-                <td className="px-4 py-3 text-slate-500 text-xs">
-                  {item.user_name || 'Unknown'}
-                </td>
+                <td className="px-4 py-3 font-mono text-[11px] text-slate-400">POS/{item.id.slice(0, 8)}</td>
+                <td className="px-4 py-3 text-slate-700 font-medium text-xs">{item.branch_name || '—'}</td>
+                <td className="px-4 py-3 text-slate-500 text-xs">{item.user_name || 'Unknown'}</td>
                 <td className="px-4 py-3">
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md capitalize ${PAYMENT_BADGE[item.payment_method?.toLowerCase()] || 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
                     {item.payment_method}
                   </span>
                 </td>
-                <td className="px-4 py-3 font-semibold text-slate-800 text-xs">
-                  ₦{formatter.format(item.amount)}
-                </td>
-                <td className="px-4 py-3 text-slate-400 text-[11px]">
-                  {new Date(item.order_date).toLocaleString('en-NG')}
-                </td>
+                <td className="px-4 py-3 font-semibold text-slate-800 text-xs">₦{formatter.format(item.amount)}</td>
+                <td className="px-4 py-3 text-slate-400 text-[11px]">{new Date(item.order_date).toLocaleString('en-NG')}</td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() => onView(item.id)}
@@ -163,12 +143,8 @@ const Table = ({ data, onView }: { data: OrderRow[]; onView: (id: string) => voi
                   {item.payment_method}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 truncate">
-                {item.user_name || 'Unknown'} · {item.branch_name || '—'}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">
-                {new Date(item.order_date).toLocaleString('en-NG')}
-              </p>
+              <p className="text-xs text-slate-500 truncate">{item.user_name || 'Unknown'} · {item.branch_name || '—'}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{new Date(item.order_date).toLocaleString('en-NG')}</p>
             </div>
             <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
               <span className="text-sm font-bold text-slate-800">₦{formatter.format(item.amount)}</span>
@@ -186,18 +162,14 @@ const Table = ({ data, onView }: { data: OrderRow[]; onView: (id: string) => voi
   );
 };
 
-// ── Top Items Section ─────────────────────────────────
 const TopItemsSection = ({
-  items,
-  loading,
-  formatter,
+  items, loading, formatter,
 }: {
   items: TopItem[];
   loading: boolean;
   formatter: Intl.NumberFormat;
 }) => {
   const maxQty = items.length > 0 ? Math.max(...items.map((i) => i.quantity_sold)) : 1;
-
   return (
     <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -209,7 +181,6 @@ const TopItemsSection = ({
           <i className="fas fa-fire text-amber-500 text-sm"></i>
         </div>
       </div>
-
       <div className="px-5 py-3">
         {loading ? (
           <div className="py-10 text-center text-slate-400">
@@ -225,37 +196,21 @@ const TopItemsSection = ({
           <ul className="divide-y divide-slate-50">
             {items.map((item, i) => {
               const barWidth = Math.round((item.quantity_sold / maxQty) * 100);
-              const rankColors = [
-                'bg-amber-400', 'bg-slate-300', 'bg-orange-300',
-              ];
+              const rankColors = ['bg-amber-400', 'bg-slate-300', 'bg-orange-300'];
               return (
                 <li key={i} className="py-3 flex items-center gap-4">
-                  {/* Rank badge */}
-                  <span
-                    className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white ${rankColors[i] ?? 'bg-slate-200 text-slate-500'}`}
-                  >
+                  <span className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white ${rankColors[i] ?? 'bg-slate-200 text-slate-500'}`}>
                     {i + 1}
                   </span>
-
-                  {/* Name + bar */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-semibold text-slate-700 truncate pr-2">
-                        {item.item_name}
-                      </span>
-                      <span className="text-[11px] text-slate-400 flex-shrink-0">
-                        {item.quantity_sold} sold
-                      </span>
+                      <span className="text-xs font-semibold text-slate-700 truncate pr-2">{item.item_name}</span>
+                      <span className="text-[11px] text-slate-400 flex-shrink-0">{item.quantity_sold} sold</span>
                     </div>
                     <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-[#0d1f3c] rounded-full transition-all duration-500"
-                        style={{ width: `${barWidth}%` }}
-                      />
+                      <div className="h-full bg-[#0d1f3c] rounded-full transition-all duration-500" style={{ width: `${barWidth}%` }} />
                     </div>
                   </div>
-
-                  {/* Revenue */}
                   <span className="text-xs font-bold text-slate-800 flex-shrink-0 w-24 text-right">
                     ₦{formatter.format(item.revenue)}
                   </span>
@@ -269,7 +224,6 @@ const TopItemsSection = ({
   );
 };
 
-// ── Full-screen state wrapper ─────────────────────────
 const FullScreen = ({ children }: { children: React.ReactNode }) => (
   <div className="flex min-h-screen bg-[#f4f6fb]">
     <div className="hidden md:block w-56 bg-[#0d1f3c] flex-shrink-0" />
@@ -282,6 +236,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { profile, fetchProfile } = useAuthStore();
 
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [paymentFilter, setPaymentFilter] = useState('all');
@@ -295,8 +250,29 @@ export default function DashboardPage() {
   const [endDate, setEndDate] = useState(getEndOfDay(today));
   const [activePreset, setActivePreset] = useState<'today' | 'week' | 'month' | 'custom'>('today');
 
-  useEffect(() => { fetchProfile(); }, [fetchProfile]);
+  // ── Session guard ─────────────────────────────────
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.replace('/login');
+        return;
+      }
+      setSessionChecked(true);
+      fetchProfile();
+    };
+    checkSession();
+  }, [router, fetchProfile]);
 
+  // ── Listen for auth changes (logout from another tab, token expiry) ──
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') router.replace('/login');
+    });
+    return () => subscription.unsubscribe();
+  }, [router]);
+
+  // ── Redirect non-admins ───────────────────────────
   useEffect(() => {
     if (profile && profile.role?.toLowerCase() !== 'admin') router.push('/pos');
   }, [profile, router]);
@@ -310,12 +286,7 @@ export default function DashboardPage() {
       p_end_date: endDate,
     });
     if (error) {
-      console.error('Supabase RPC error:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      });
+      console.error('Supabase RPC error:', error);
       setData(null);
     } else {
       setData(result);
@@ -323,51 +294,21 @@ export default function DashboardPage() {
     setLoading(false);
   }, [profile?.company_id, startDate, endDate]);
 
-  // ── TODO: replace this with your actual Supabase RPC/query ──────────────
-  // Example shape of the query you'd write:
-  //
-  //   SELECT
-  //     p.name            AS item_name,
-  //     SUM(oi.quantity)  AS quantity_sold,
-  //     SUM(oi.quantity * oi.unit_price) AS revenue
-  //   FROM order_items oi
-  //   JOIN products p ON p.id = oi.product_id
-  //   JOIN orders o   ON o.id = oi.order_id
-  //   WHERE o.company_id = $1
-  //     AND o.order_date BETWEEN $2 AND $3
-  //   GROUP BY p.name
-  //   ORDER BY quantity_sold DESC
-  //   LIMIT 10;
-  //
-  // Then expose it as an RPC: get_top_items(comp_id, p_start_date, p_end_date)
-  // ────────────────────────────────────────────────────────────────────────
-    const fetchTopItems = useCallback(async () => {
+  const fetchTopItems = useCallback(async () => {
     if (!profile?.company_id) return;
     setTopItemsLoading(true);
-    
     try {
       const { data: result, error } = await supabase.rpc('get_top_items', {
         comp_id: profile.company_id,
         p_start_date: startDate,
         p_end_date: endDate,
       });
-
-      if (error) {
-        console.error('Supabase Top Items error:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-        });
-        setTopItems([]);
-      } else {
-        setTopItems(result ?? []);
-      }
+      if (error) { console.error('Top items error:', error); setTopItems([]); }
+      else setTopItems(result ?? []);
     } catch (err) {
       console.error('Failed to fetch top items:', err);
       setTopItems([]);
     }
-    
     setTopItemsLoading(false);
   }, [profile?.company_id, startDate, endDate]);
 
@@ -382,13 +323,10 @@ export default function DashboardPage() {
     setActivePreset(preset);
     const now = new Date();
     if (preset === 'today') {
-      setStartDate(getStartOfDay(now));
-      setEndDate(getEndOfDay(now));
+      setStartDate(getStartOfDay(now)); setEndDate(getEndOfDay(now));
     } else if (preset === 'week') {
-      const s = new Date(now);
-      s.setDate(now.getDate() - now.getDay());
-      setStartDate(getStartOfDay(s));
-      setEndDate(getEndOfDay(now));
+      const s = new Date(now); s.setDate(now.getDate() - now.getDay());
+      setStartDate(getStartOfDay(s)); setEndDate(getEndOfDay(now));
     } else if (preset === 'month') {
       setStartDate(getStartOfDay(new Date(now.getFullYear(), now.getMonth(), 1)));
       setEndDate(getEndOfDay(now));
@@ -396,6 +334,15 @@ export default function DashboardPage() {
   };
 
   // ── Guards ────────────────────────────────────────
+  if (!sessionChecked) return (
+    <FullScreen>
+      <div className="text-center text-slate-400">
+        <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>
+        <p className="text-sm">Verifying session…</p>
+      </div>
+    </FullScreen>
+  );
+
   if (!profile) return (
     <FullScreen>
       <div className="text-center text-slate-400">
@@ -450,24 +397,17 @@ export default function DashboardPage() {
   return (
     <div className="flex min-h-screen bg-[#f4f6fb]">
 
-      {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-20 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/40 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* ── Sidebar ── */}
-      <aside
-        className={`
-          fixed inset-y-0 left-0 z-30 w-56 bg-[#0d1f3c] flex flex-col
-          transform transition-transform duration-200
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:relative md:translate-x-0 md:flex-shrink-0
-        `}
-      >
-        {/* Logo */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-30 w-56 bg-[#0d1f3c] flex flex-col
+        transform transition-transform duration-200
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:relative md:translate-x-0 md:flex-shrink-0
+      `}>
         <div className="flex items-center gap-3 px-5 py-5 border-b border-white/10">
           <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
             <i className="fas fa-store text-white text-sm"></i>
@@ -475,7 +415,6 @@ export default function DashboardPage() {
           <span className="text-white font-semibold text-sm tracking-wide">POSAdmin</span>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {NAV.map((item) => {
             const active = item.href === '/dashboard';
@@ -485,9 +424,7 @@ export default function DashboardPage() {
                 onClick={() => router.push(item.href)}
                 className={`
                   w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left
-                  ${active
-                    ? 'bg-blue-600 text-white'
-                    : 'text-white/50 hover:text-white/90 hover:bg-white/5'}
+                  ${active ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white/90 hover:bg-white/5'}
                 `}
               >
                 <i className={`fas ${item.icon} w-4 text-center text-sm`}></i>
@@ -498,23 +435,29 @@ export default function DashboardPage() {
         </nav>
 
         {/* Profile footer */}
-        <div className="px-3 py-4 border-t border-white/10">
-          <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {(profile.full_name || 'A').charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <p className="text-white text-xs font-semibold truncate">{profile.full_name || 'Admin'}</p>
-              <p className="text-white/40 text-[10px]">Super Admin</p>
-            </div>
-          </div>
-        </div>
+<div className="px-3 py-4 border-t border-white/10">
+  <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors">
+    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+      {(profile.full_name || 'A').charAt(0).toUpperCase()}
+    </div>
+    <div className="min-w-0 flex-1">
+      <p className="text-white text-xs font-semibold truncate">{profile.full_name || 'Admin'}</p>
+      <p className="text-white/40 text-[10px]">Super Admin</p>
+    </div>
+    <button
+  onClick={() => router.push('/login')}
+  title="Sign out"
+  className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-white hover:text-red-400 hover:bg-white/10 transition-colors"
+>
+  <i className="fas fa-arrow-right-from-bracket text-xs"></i>
+</button>
+  </div>
+</div>
       </aside>
 
       {/* ── Main ── */}
       <div className="flex-1 flex flex-col min-w-0">
 
-        {/* Top bar */}
         <header className="bg-white border-b border-slate-200 px-5 md:px-6 py-3.5 flex items-center justify-between gap-3 flex-shrink-0">
           <div className="flex items-center gap-3">
             <button
@@ -526,9 +469,7 @@ export default function DashboardPage() {
             </button>
             <div>
               <h1 className="text-sm font-bold text-[#0d1f3c] leading-tight">Dashboard</h1>
-              <p className="text-[11px] text-slate-400 leading-tight">
-                Welcome back, {profile.full_name || 'Admin'}
-              </p>
+              <p className="text-[11px] text-slate-400 leading-tight">Welcome back, {profile.full_name || 'Admin'}</p>
             </div>
           </div>
 
@@ -556,7 +497,6 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 p-4 md:p-6 space-y-4 overflow-y-auto">
 
           {/* Date filter */}
@@ -602,13 +542,7 @@ export default function DashboardPage() {
           {/* Stat cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {statCards.map((card) => (
-              <StatCard
-                key={card.title}
-                title={card.title}
-                amount={formatter.format(card.amount)}
-                icon={card.icon}
-                color={card.color}
-              />
+              <StatCard key={card.title} title={card.title} amount={formatter.format(card.amount)} icon={card.icon} color={card.color} />
             ))}
           </div>
 
@@ -616,10 +550,7 @@ export default function DashboardPage() {
           {data.branch_totals.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {data.branch_totals.map((branch, i) => (
-                <div
-                  key={i}
-                  className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 hover:border-slate-300 transition-colors"
-                >
+                <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 hover:border-slate-300 transition-colors">
                   <div className="w-9 h-9 bg-[#0d1f3c]/5 rounded-lg flex items-center justify-center flex-shrink-0">
                     <i className="fas fa-store text-[#0d1f3c]/60 text-sm"></i>
                   </div>
@@ -634,12 +565,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Top selling items */}
-          <TopItemsSection
-            items={topItems}
-            loading={topItemsLoading}
-            formatter={formatter}
-          />
+          <TopItemsSection items={topItems} loading={topItemsLoading} formatter={formatter} />
 
           {/* Transactions table */}
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
@@ -673,12 +599,8 @@ export default function DashboardPage() {
         </main>
       </div>
 
-      {/* Order Detail Modal */}
       {selectedOrderId && (
-        <OrderDetailModal
-          orderId={selectedOrderId}
-          onClose={() => setSelectedOrderId(null)}
-        />
+        <OrderDetailModal orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
       )}
     </div>
   );

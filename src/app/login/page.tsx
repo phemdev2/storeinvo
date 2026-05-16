@@ -1,18 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/useAuthStore';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuthStore();
+  const { login, logout } = useAuthStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  // ── If arriving here with an active session, sign it out first ──
+  // This handles "logout" by redirecting to /login
+  useEffect(() => {
+    const clearSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setLoggingOut(true);
+        await logout();
+        setLoggingOut(false);
+      }
+    };
+    clearSession();
+  }, [logout]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +43,15 @@ export default function LoginPage() {
       router.push('/pos');
     }
   };
+
+  if (loggingOut) return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="text-center text-slate-400">
+        <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>
+        <p className="text-sm">Signing out…</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">

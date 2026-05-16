@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePosStore } from '@/store/usePosStore';
@@ -9,13 +9,7 @@ import { Branch } from '@/lib/types';
 
 // --- Sub-Components ---
 
-function FullScreenLoader({
-  message,
-  submessage,
-}: {
-  message: string;
-  submessage?: string;
-}) {
+function FullScreenLoader({ message, submessage }: { message: string; submessage?: string }) {
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="flex flex-col items-center space-y-4">
@@ -27,20 +21,14 @@ function FullScreenLoader({
         </div>
         <div className="text-center">
           <p className="text-lg font-semibold text-slate-700">{message}</p>
-          {submessage && (
-            <p className="text-sm text-slate-400 mt-1">{submessage}</p>
-          )}
+          {submessage && <p className="text-sm text-slate-400 mt-1">{submessage}</p>}
         </div>
       </div>
     </div>
   );
 }
 
-function FullScreenError({
-  message,
-  onRetry,
-  onLogout,
-}: {
+function FullScreenError({ message, onRetry, onLogout }: {
   message: string;
   onRetry?: () => void;
   onLogout: () => void;
@@ -55,17 +43,11 @@ function FullScreenError({
         <p className="text-slate-500 mb-6 text-sm">{message}</p>
         <div className="space-y-3">
           {onRetry && (
-            <button
-              onClick={onRetry}
-              className="w-full py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors"
-            >
+            <button onClick={onRetry} className="w-full py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors">
               Try Again
             </button>
           )}
-          <button
-            onClick={onLogout}
-            className="w-full py-3 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-900 transition-colors"
-          >
+          <button onClick={onLogout} className="w-full py-3 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-900 transition-colors">
             Sign Out
           </button>
         </div>
@@ -74,11 +56,7 @@ function FullScreenError({
   );
 }
 
-function BranchSelectionScreen({
-  branches,
-  onSelect,
-  onLogout,
-}: {
+function BranchSelectionScreen({ branches, onSelect, onLogout }: {
   branches: Branch[];
   onSelect: (id: string) => void;
   onLogout: () => void;
@@ -91,13 +69,8 @@ function BranchSelectionScreen({
             <i className="fas fa-store-slash text-amber-500 text-2xl" />
           </div>
           <h2 className="text-xl font-bold text-slate-800 mb-2">No Branches Found</h2>
-          <p className="text-slate-500 mb-6 text-sm">
-            Contact your administrator to get branch access.
-          </p>
-          <button
-            onClick={onLogout}
-            className="w-full py-3 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-900 transition-colors"
-          >
+          <p className="text-slate-500 mb-6 text-sm">Contact your administrator to get branch access.</p>
+          <button onClick={onLogout} className="w-full py-3 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-900 transition-colors">
             Sign Out
           </button>
         </div>
@@ -113,9 +86,7 @@ function BranchSelectionScreen({
             <i className="fas fa-building text-purple-600 text-xl" />
           </div>
           <h2 className="text-2xl font-bold text-slate-800">Select Branch</h2>
-          <p className="text-slate-400 text-sm mt-1">
-            Where are you working today?
-          </p>
+          <p className="text-slate-400 text-sm mt-1">Where are you working today?</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -130,9 +101,7 @@ function BranchSelectionScreen({
                 {branch.name}
               </p>
               {'location' in branch && (
-                <p className="text-xs text-slate-400 mt-1 truncate">
-                  {branch.location}
-                </p>
+                <p className="text-xs text-slate-400 mt-1 truncate">{branch.location}</p>
               )}
             </button>
           ))}
@@ -154,13 +123,14 @@ function BranchSelectionScreen({
 
 export default function POSPage() {
   const router = useRouter();
+  const hasFetchedProducts = useRef(false);
 
   const {
     user,
     branches,
     activeBranchId,
     isLoading,
-    profileError,    // ✅ NEW: expose error from auth store
+    profileError,
     fetchProfile,
     logout,
     setActiveBranch,
@@ -170,8 +140,15 @@ export default function POSPage() {
     products,
     fetchProducts,
     isLoadingProducts,
-    productsError,    // ✅ NEW: expose error from POS store
+    productsError,
   } = usePosStore();
+
+  // ── Hydrate products from localStorage immediately ──────────────
+  // usePosStore already persists products via zustand/persist,
+  // so products[] is populated from cache before any network call.
+  // We just need to avoid blocking render on the loading state
+  // when cached products exist.
+  const hasCachedProducts = products.length > 0;
 
   // ── Fetch profile on mount ──────────────────────────────────────
   useEffect(() => {
@@ -192,9 +169,12 @@ export default function POSPage() {
     }
   }, [user, branches, activeBranchId, setActiveBranch]);
 
-  // ── Fetch products when a branch is active ──────────────────────
+  // ── Fetch products (background refresh if cache exists) ─────────
   useEffect(() => {
-    if (user && activeBranchId) {
+    if (user && activeBranchId && !hasFetchedProducts.current) {
+      hasFetchedProducts.current = true;
+      // Always fetch fresh data, but if cache exists it renders immediately
+      // and the store updates silently in the background
       fetchProducts(activeBranchId);
     }
   }, [user, activeBranchId, fetchProducts]);
@@ -206,17 +186,18 @@ export default function POSPage() {
 
   const handleRetryProducts = useCallback(() => {
     if (activeBranchId) {
+      hasFetchedProducts.current = false;
       fetchProducts(activeBranchId);
     }
   }, [activeBranchId, fetchProducts]);
 
-  // ── Render states (order matters) ───────────────────────────────
+  // ── Render states ───────────────────────────────────────────────
 
-  // 1. Initial auth load
+  // 1. Initial auth load — skip if we have cached products (feels instant)
   if (isLoading || !user) {
     return (
       <FullScreenLoader
-        message="Preparing session…"
+        message={hasCachedProducts ? 'Almost ready…' : 'Preparing session…'}
         submessage="Verifying credentials"
       />
     );
@@ -244,8 +225,8 @@ export default function POSPage() {
     );
   }
 
-  // 4. Products fetch failed
-  if (productsError) {
+  // 4. Products fetch failed — only block if no cache to show
+  if (productsError && !hasCachedProducts) {
     return (
       <FullScreenError
         message={productsError}
@@ -255,9 +236,8 @@ export default function POSPage() {
     );
   }
 
-  // 5. Products loading — guard against false-positive initial state
-  //    Only show if there are no products yet (first load)
-  if (isLoadingProducts && products.length === 0) {
+  // 5. First load with no cache — show spinner
+  if (isLoadingProducts && !hasCachedProducts) {
     return (
       <FullScreenLoader
         message="Syncing Branch…"
@@ -266,6 +246,6 @@ export default function POSPage() {
     );
   }
 
-  // 6. Ready
+  // 6. Ready — renders immediately if cache exists, updates silently
   return <POSLayout />;
 }
