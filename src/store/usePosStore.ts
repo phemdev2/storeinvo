@@ -13,10 +13,10 @@ interface POSState {
   crudModalOpen: boolean;
   editingProduct: Product | null;
   isLoadingProducts: boolean;
-  productsError: string | null; // ✅ ADDED HERE
 
   // Data State
   products: Product[];
+  totalProductCount: number; // ✅ total from DB for pagination display
 
   // Cart State
   sessions: Record<string, CartSession>;
@@ -57,6 +57,8 @@ interface POSState {
   refundByInvoice: (invoiceId: string) => Promise<string | null>;
 }
 
+const SUPABASE_PAGE_SIZE = 1000; // Supabase hard max per request
+
 export const usePosStore = create<POSState>()(
   persist(
     (set, get) => ({
@@ -70,9 +72,9 @@ export const usePosStore = create<POSState>()(
       crudModalOpen: false,
       editingProduct: null,
       isLoadingProducts: true,
-      productsError: null, // ✅ ADDED HERE
 
       products: [],
+      totalProductCount: 0,
 
       sessions: { t1: { number: 1, items: {}, discount: 0, discountType: 'fixed' } },
       activeTab: 't1',
@@ -86,90 +88,117 @@ export const usePosStore = create<POSState>()(
       // ==========================================
       setMobileView: (view) => set({ mobileView: view }),
       setSearch: (s) => set({ search: s, limit: 24 }),
-      
+
       openVariantModal: (product) => set({ variantModalProduct: product }),
       closeVariantModal: () => set({ variantModalProduct: null }),
-      
+
       openCrudModal: (product) => set({ crudModalOpen: true, editingProduct: product || null }),
       closeCrudModal: () => set({ crudModalOpen: false, editingProduct: null }),
 
       // ==========================================
       // DATA ACTIONS (SUPABASE)
+      // Supabase caps each response at 1000 rows.
+      // We loop with .range() until we get everything.
       // ==========================================
       fetchProducts: async (branchId: string) => {
-        if (!branchId) return;
-        set({ isLoadingProducts: true, productsError: null }); // ✅ CLEAR ERROR ON FETCH
-        
-        let allProducts: any[] = [];
-        let page = 0;
-        const limit = 1000;
+  if (!branchId) return;
+  set({ isLoadingProducts: true });
+
+  // ── DEBUG: verify client and auth ──
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log('[fetchProducts] session:', session?.user?.id, 'error:', sessionError);
+    console.log('[fetchProducts] branchId:', branchId);
+  } catch (e) {
+    console.error('[fetchProducts] supabase client error:', e);
+  }
+
+        let allData: any[] = [];
+        let from = 0;
         let hasMore = true;
 
-        try {
-          while (hasMore) {
-            const from = page * limit;
-            const to = from + limit - 1;
+        while (hasMore) {
+          const { data, error } = await supabase
+            .from('products')
+            .select(`
+              id,
+              name,
+              barcode,
+              price,
+              stock,
+              cost,
+              is_variable_price,
+              variants (
+                id,
+                variant_name,
+                price
+              )
+            `)
+            .eq('branch_id', branchId)
+            .order('name', { ascending: true })
+            .range(from, from + SUPABASE_PAGE_SIZE - 1);
 
-            const { data, error } = await supabase
-              .from('products')
-              .select('id, name, barcode, price, stock, is_var, cost, variants(*)')
-              .eq('branch_id', branchId)
-              .range(from, to); 
-
-            if (error) throw error;
-
-            if (data && data.length > 0) {
-              allProducts = [...allProducts, ...data]; 
-              if (data.length < limit) {
-                hasMore = false; 
-              } else {
-                page++; 
-              }
-            } else {
-              hasMore = false; 
-            }
+          if (error) {
+            console.error('[fetchProducts] error:', error.message);
+            set({ isLoadingProducts: false });
+            return;
           }
 
-          const mappedData = allProducts.map((item: any) => ({
-            id: item.id,
-            n: item.name,
-            b: item.barcode,
-            p: item.price,
-            s: item.stock,
-            is_var: item.is_var ?? false,
-            cost: item.cost || 0,
-            v: item.variants?.map((variant: any) => ({ id: variant.id, n: variant.name, p: variant.price })) || []
-          }));
-          
-          set({ products: mappedData, isLoadingProducts: false, productsError: null });
-
-        } catch (error: any) {
-          console.error("Supabase fetch error:", error.message);
-          // ✅ SET ERROR STATE HERE
-          set({ 
-            isLoadingProducts: false, 
-            productsError: error.message || "Failed to load products" 
-          });
+          if (data && data.length > 0) {
+            allData = [...allData, ...data];
+            from += SUPABASE_PAGE_SIZE;
+            // If we got fewer than the page size, we've reached the end
+            hasMore = data.length === SUPABASE_PAGE_SIZE;
+          } else {
+            hasMore = false;
+          }
         }
+
+        if (allData.length === 0) {
+          set({ products: [], totalProductCount: 0, isLoadingProducts: false });
+          return;
+        }
+
+        const mappedData: Product[] = allData.map((item: any) => ({
+          id: item.id,
+          n: item.name,
+          b: item.barcode,
+          p: item.price,
+          s: item.stock,
+          cost: item.cost,
+          is_var: item.is_variable_price || (item.variants?.length > 0),
+          v: item.variants?.map((variant: any) => ({
+            id: variant.id,
+            n: variant.variant_name,
+            p: variant.price,
+          })) || [],
+        }));
+
+        set({
+          products: mappedData,
+          totalProductCount: mappedData.length,
+          isLoadingProducts: false,
+        });
       },
 
       // ==========================================
       // CART TAB ACTIONS
       // ==========================================
       switchTab: (id) => set({ activeTab: id }),
-      
+
       createTab: () => {
         const state = get();
         const id = 't' + Date.now();
         const maxNumber = Object.values(state.sessions).reduce((max, s) => Math.max(max, s.number), 0);
-        const nextNumber = maxNumber + 1;
-
         set({
-          sessions: { ...state.sessions, [id]: { number: nextNumber, items: {}, discount: 0, discountType: 'fixed' } },
-          activeTab: id
+          sessions: {
+            ...state.sessions,
+            [id]: { number: maxNumber + 1, items: {}, discount: 0, discountType: 'fixed' },
+          },
+          activeTab: id,
         });
       },
-      
+
       closeTab: (id) => {
         const state = get();
         const newSessions = { ...state.sessions };
@@ -188,21 +217,22 @@ export const usePosStore = create<POSState>()(
         const vid = v ? v.id : 'base';
         const key = `${p.id}_${vid}`;
         const items = { ...state.sessions[state.activeTab].items };
-        const qtyToAdd = 1;
-
         const finalPrice = overridePrice || (v ? v.p : p.p);
 
         if (items[key]) {
-          items[key].qty += qtyToAdd;
+          items[key].qty += 1;
         } else {
-          items[key] = { 
-            id: p.id, n: p.n, b: p.b, p: finalPrice, 
-            v_name: v ? v.n : null, vid: v ? String(v.id) : null, qty: qtyToAdd 
+          items[key] = {
+            id: p.id, n: p.n, b: p.b, p: finalPrice,
+            v_name: v ? v.n : null, vid: v ? String(v.id) : null, qty: 1,
           };
         }
 
         if (items[key].qty === 0) delete items[key];
-        set({ sessions: { ...state.sessions, [state.activeTab]: { ...state.sessions[state.activeTab], items } }, search: '' });
+        set({
+          sessions: { ...state.sessions, [state.activeTab]: { ...state.sessions[state.activeTab], items } },
+          search: '',
+        });
       },
 
       modItem: (key, n) => {
@@ -218,39 +248,40 @@ export const usePosStore = create<POSState>()(
       clearCart: () => {
         const state = get();
         if (!confirm('Clear cart?')) return;
-        set({ 
-          sessions: { ...state.sessions, [state.activeTab]: { ...state.sessions[state.activeTab], items: {}, discount: 0 } } 
+        set({
+          sessions: {
+            ...state.sessions,
+            [state.activeTab]: { ...state.sessions[state.activeTab], items: {}, discount: 0 },
+          },
         });
       },
 
       applyDiscount: (val, type) => {
         const state = get();
-        set({ 
-          sessions: { ...state.sessions, [state.activeTab]: { ...state.sessions[state.activeTab], discount: val, discountType: type } } 
+        set({
+          sessions: {
+            ...state.sessions,
+            [state.activeTab]: { ...state.sessions[state.activeTab], discount: val, discountType: type },
+          },
         });
       },
 
       updateItemPrice: (tabId, itemKey, newPrice) => {
         set((state) => {
           const session = state.sessions[tabId];
-          if (session?.items[itemKey]) {
-            return {
-              sessions: {
-                ...state.sessions,
-                [tabId]: {
-                  ...session,
-                  items: {
-                    ...session.items,
-                    [itemKey]: {
-                      ...session.items[itemKey],
-                      p: newPrice
-                    }
-                  }
-                }
-              }
-            };
-          }
-          return state;
+          if (!session?.items[itemKey]) return state;
+          return {
+            sessions: {
+              ...state.sessions,
+              [tabId]: {
+                ...session,
+                items: {
+                  ...session.items,
+                  [itemKey]: { ...session.items[itemKey], p: newPrice },
+                },
+              },
+            },
+          };
         });
       },
 
@@ -259,36 +290,33 @@ export const usePosStore = create<POSState>()(
       // ==========================================
       closeReceipt: () => set({ currentReceipt: null }),
 
-      processPayment: (method: string, customerName?: string, customerPhone?: string) => {
+      processPayment: (method, customerName, customerPhone) => {
         const state = get();
         const session = state.sessions[state.activeTab];
         const items = Object.values(session.items);
         if (items.length === 0) return;
 
-        const rawSubtotal = items.reduce((a, i) => a + (i.p * i.qty), 0);
-        let discountAmt = 0;
-        if (session.discountType === 'percent') {
-          discountAmt = rawSubtotal * ((session.discount || 0) / 100);
-        } else {
-          discountAmt = session.discount || 0;
-        }
+        const rawSubtotal = items.reduce((a, i) => a + i.p * i.qty, 0);
+        const discountAmt =
+          session.discountType === 'percent'
+            ? rawSubtotal * ((session.discount || 0) / 100)
+            : session.discount || 0;
         const total = Math.round((rawSubtotal - discountAmt + Number.EPSILON) * 100) / 100;
-        const now = new Date();
 
         const newOrder: Order = {
           id: 'ORD-' + Math.floor(Date.now() / 1000),
-          date: now.toLocaleString('en-NG'),
+          date: new Date().toLocaleString('en-NG'),
           method: method.toUpperCase(),
-          items: items,
-          total: total,
+          items,
+          total,
           raw_total: total,
           user_name: useAuthStore.getState().profile?.full_name || 'Unknown Cashier',
-          customer_name: customerName || null, 
-          customer_phone: customerPhone || null 
+          customer_name: customerName || null,
+          customer_phone: customerPhone || null,
         };
 
-        const newProducts = state.products.map(p => {
-          const cartItem = items.find(i => i.id === p.id);
+        const newProducts = state.products.map((p) => {
+          const cartItem = items.find((i) => i.id === p.id);
           return cartItem ? { ...p, s: p.s - cartItem.qty } : p;
         });
 
@@ -296,18 +324,18 @@ export const usePosStore = create<POSState>()(
           products: newProducts,
           queue: [...state.queue, newOrder],
           currentReceipt: newOrder,
-          sessions: { 
-            ...state.sessions, 
-            [state.activeTab]: { ...session, items: {}, discount: 0 } 
+          sessions: {
+            ...state.sessions,
+            [state.activeTab]: { ...session, items: {}, discount: 0 },
           },
-          mobileView: 'cart'
+          mobileView: 'cart',
         });
       },
 
       processQueue: async () => {
         const state = get();
         if (state.queue.length === 0 || state.syncing) return;
-        
+
         const { data: { user } } = await supabase.auth.getUser();
         const branchId = useAuthStore.getState().activeBranchId;
         const companyId = useAuthStore.getState().profile?.company_id;
@@ -316,48 +344,54 @@ export const usePosStore = create<POSState>()(
         const orderToSync = state.queue[0];
 
         if (!user || !companyId || !branchId) {
-          console.error("[Supabase] Sync failed: Missing auth context.");
+          console.error('[Supabase] Sync failed: Missing auth context.');
           set({ syncing: false });
           return;
         }
 
         try {
-          const { data: orderRes, error: orderErr } = await supabase.from('orders').insert({
-            id: orderToSync.id,
-            company_id: companyId,
-            branch_id: branchId,
-            user_id: user.id,
-            total: orderToSync.total,
-            method: orderToSync.method,
-            user_name: orderToSync.user_name,
-            customer_name: orderToSync.customer_name, 
-            customer_phone: orderToSync.customer_phone 
-          }).select('id').single();
+          const { data: orderRes, error: orderErr } = await supabase
+            .from('orders')
+            .insert({
+              id: orderToSync.id,
+              company_id: companyId,
+              branch_id: branchId,
+              user_id: user.id,
+              total: orderToSync.total,
+              method: orderToSync.method,
+              user_name: orderToSync.user_name,
+              customer_name: orderToSync.customer_name,
+              customer_phone: orderToSync.customer_phone,
+            })
+            .select('id')
+            .single();
 
           if (orderErr) throw new Error(orderErr.message || JSON.stringify(orderErr));
 
-          const itemsToInsert = orderToSync.items.map(item => ({
-            order_id: orderRes.id, 
-            product_id: item.id, 
-            variant_id: (item.vid && item.vid !== 'base' && !isNaN(Number(item.vid))) ? Number(item.vid) : null,
-            product_name: item.n, 
-            quantity: item.qty, 
-            price: item.p
+          const itemsToInsert = orderToSync.items.map((item) => ({
+            order_id: orderRes.id,
+            product_id: item.id,
+            variant_id:
+              item.vid && item.vid !== 'base' && !isNaN(Number(item.vid))
+                ? Number(item.vid)
+                : null,
+            product_name: item.n,
+            quantity: item.qty,
+            price: item.p,
           }));
 
           const { error: itemsErr } = await supabase.from('order_items').insert(itemsToInsert);
           if (itemsErr) throw new Error(itemsErr.message || JSON.stringify(itemsErr));
 
           usePosStore.setState({ queue: usePosStore.getState().queue.slice(1) });
-          console.log(`[Supabase] Order ${orderToSync.id} synced successfully!`);
-
+          console.log(`[Supabase] Order ${orderToSync.id} synced.`);
         } catch (error: any) {
-          const errorMsg = error.message || JSON.stringify(error);
-          if (errorMsg.includes('duplicate key') || errorMsg.includes('409')) {
-            console.warn(`[Supabase] Order ${orderToSync.id} already synced. Removing from queue.`);
+          const msg = error.message || JSON.stringify(error);
+          if (msg.includes('duplicate key') || msg.includes('409')) {
+            console.warn(`[Supabase] Order ${orderToSync.id} already synced. Removing.`);
             usePosStore.setState({ queue: usePosStore.getState().queue.slice(1) });
           } else {
-            console.error(`[Supabase] Sync failed for ${orderToSync.id}:`, errorMsg);
+            console.error(`[Supabase] Sync failed for ${orderToSync.id}:`, msg);
           }
         } finally {
           set({ syncing: false });
@@ -365,12 +399,9 @@ export const usePosStore = create<POSState>()(
       },
 
       refundByInvoice: async (invoiceId: string) => {
-        if (!invoiceId.trim()) return "Please enter an Invoice ID";
-        
+        if (!invoiceId.trim()) return 'Please enter an Invoice ID';
         let finalId = invoiceId.trim();
-        if (!finalId.startsWith('ORD-')) {
-          finalId = 'ORD-' + finalId;
-        }
+        if (!finalId.startsWith('ORD-')) finalId = 'ORD-' + finalId;
 
         const { data: order, error } = await supabase
           .from('orders')
@@ -378,8 +409,8 @@ export const usePosStore = create<POSState>()(
           .eq('id', finalId)
           .single();
 
-        if (error || !order) return "Invoice not found in this branch.";
-        if (!order.order_items || order.order_items.length === 0) return "Invoice has no items.";
+        if (error || !order) return 'Invoice not found in this branch.';
+        if (!order.order_items?.length) return 'Invoice has no items.';
 
         const state = get();
         const items = { ...state.sessions[state.activeTab].items };
@@ -387,36 +418,36 @@ export const usePosStore = create<POSState>()(
         order.order_items.forEach((item: any) => {
           const vid = item.variant_id || 'base';
           const key = `${item.product_id}_${vid}`;
-          
           if (items[key]) {
             items[key].qty -= item.quantity;
           } else {
-            items[key] = { 
-              id: item.product_id, n: item.product_name, b: '', p: item.price, 
-              v_name: null, vid: item.variant_id ? String(item.variant_id) : null, 
-              qty: -item.quantity 
+            items[key] = {
+              id: item.product_id, n: item.product_name, b: '', p: item.price,
+              v_name: null, vid: item.variant_id ? String(item.variant_id) : null,
+              qty: -item.quantity,
             };
           }
-          
           if (items[key].qty === 0) delete items[key];
         });
 
-        set({ 
-          sessions: { ...state.sessions, [state.activeTab]: { ...state.sessions[state.activeTab], items } },
-          mobileView: 'cart'
+        set({
+          sessions: {
+            ...state.sessions,
+            [state.activeTab]: { ...state.sessions[state.activeTab], items },
+          },
+          mobileView: 'cart',
         });
-        
+
         return null;
-      }
+      },
     }),
     {
-      name: 'pos-cart-storage', 
-      partialize: (state) => ({ 
-        sessions: state.sessions, 
+      name: 'pos-cart-storage',
+      partialize: (state) => ({
+        sessions: state.sessions,
         activeTab: state.activeTab,
-        queue: state.queue
+        queue: state.queue,
       }),
     }
-    
   )
 );
