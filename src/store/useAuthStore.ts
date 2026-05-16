@@ -22,6 +22,7 @@ interface AuthState {
   branches: Branch[];
   activeBranchId: string | null;
   isLoading: boolean;
+  profileError: string | null; // ✅ ADDED: Error state for profile fetching
   login: (email: string, password: string) => Promise<string | null>;
   registerCompany: (
     companyName: string,
@@ -43,6 +44,7 @@ export const useAuthStore = create<AuthState>()(
       branches: [],
       activeBranchId: null,
       isLoading: true,
+      profileError: null, // ✅ ADDED: Initial state
 
       // ✅ Defined as a plain arrow function — will not be lost on rehydration
       setActiveBranch: (id: string) => set({ activeBranchId: id }),
@@ -120,49 +122,74 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         await supabase.auth.signOut();
-        set({ user: null, profile: null, branches: [], activeBranchId: null });
+        set({ user: null, profile: null, branches: [], activeBranchId: null, profileError: null });
       },
 
       fetchProfile: async () => {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        // ✅ Clear previous errors when starting a fresh fetch
+        set({ isLoading: true, profileError: null }); 
 
-        if (!user) {
-          set({ isLoading: false });
-          return;
+        try {
+          const { data: { user }, error: authError } = await supabase.auth.getUser();
+          if (authError) throw authError;
+
+          if (!user) {
+            set({ isLoading: false });
+            return;
+          }
+
+          set({ user });
+
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+          if (profileError) throw profileError;
+
+          if (!profile) {
+            throw new Error("Profile missing for this user. Please delete this user in Supabase Auth and register again.");
+          }
+
+          const { data: branches, error: branchError } = await supabase
+            .from('branches')
+            .select('id, name')
+            .eq('company_id', profile.company_id);
+          
+          if (branchError) throw branchError;
+
+          set({
+            profile,
+            branches: branches || [],
+            activeBranchId:
+              get().activeBranchId ||
+              (branches && branches.length > 0 ? branches[0].id : null),
+            isLoading: false,
+            profileError: null, // Ensure error is cleared on success
+          });
+        } catch (error: any) {
+          console.error("Fetch profile error:", error.message);
+          
+          // If profile is fundamentally missing, sign them out
+          if (error.message.includes("Profile missing")) {
+            await supabase.auth.signOut();
+            set({ 
+              user: null, 
+              profile: null, 
+              branches: [], 
+              activeBranchId: null, 
+              isLoading: false, 
+              profileError: error.message 
+            });
+          } else {
+            // For network errors or RPC failures, keep them logged in but show the error screen
+            set({ 
+              profileError: error.message || "Failed to fetch profile data", 
+              isLoading: false 
+            });
+          }
         }
-
-        set({ user });
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (!profile) {
-          console.error(
-            'Profile missing for this user. Please delete this user in Supabase Auth and register again.'
-          );
-          await supabase.auth.signOut();
-          set({ user: null, profile: null, branches: [], activeBranchId: null, isLoading: false });
-          return;
-        }
-
-        const { data: branches } = await supabase
-  .from('branches')
-  .select('id, name')  // ✅ removed location
-  .eq('company_id', profile.company_id);
-
-        set({
-          profile,
-          branches: branches || [],
-          activeBranchId:
-            get().activeBranchId ||
-            (branches && branches.length > 0 ? branches[0].id : null),
-          isLoading: false,
-        });
       },
     }),
     {
