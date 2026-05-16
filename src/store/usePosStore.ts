@@ -13,7 +13,7 @@ interface POSState {
   crudModalOpen: boolean;
   editingProduct: Product | null;
   isLoadingProducts: boolean;
-  productsError: string | null; // ✅ NEW: Error state for products
+  productsError: string | null; // ✅ ADDED HERE
 
   // Data State
   products: Product[];
@@ -70,7 +70,7 @@ export const usePosStore = create<POSState>()(
       crudModalOpen: false,
       editingProduct: null,
       isLoadingProducts: true,
-      productsError: null, // ✅ NEW
+      productsError: null, // ✅ ADDED HERE
 
       products: [],
 
@@ -98,11 +98,11 @@ export const usePosStore = create<POSState>()(
       // ==========================================
       fetchProducts: async (branchId: string) => {
         if (!branchId) return;
-        set({ isLoadingProducts: true, productsError: null }); // Clear previous errors
+        set({ isLoadingProducts: true, productsError: null }); // ✅ CLEAR ERROR ON FETCH
         
         let allProducts: any[] = [];
         let page = 0;
-        const limit = 1000; // Fetch in safe chunks of 1000
+        const limit = 1000;
         let hasMore = true;
 
         try {
@@ -116,9 +116,7 @@ export const usePosStore = create<POSState>()(
               .eq('branch_id', branchId)
               .range(from, to); 
 
-            if (error) {
-              throw error; // Throw to the catch block below
-            }
+            if (error) throw error;
 
             if (data && data.length > 0) {
               allProducts = [...allProducts, ...data]; 
@@ -132,7 +130,6 @@ export const usePosStore = create<POSState>()(
             }
           }
 
-          // Map the complete accumulated data
           const mappedData = allProducts.map((item: any) => ({
             id: item.id,
             n: item.name,
@@ -147,12 +144,8 @@ export const usePosStore = create<POSState>()(
           set({ products: mappedData, isLoadingProducts: false, productsError: null });
 
         } catch (error: any) {
-          console.error("Supabase fetch error:", {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code
-          });
+          console.error("Supabase fetch error:", error.message);
+          // ✅ SET ERROR STATE HERE
           set({ 
             isLoadingProducts: false, 
             productsError: error.message || "Failed to load products" 
@@ -168,16 +161,11 @@ export const usePosStore = create<POSState>()(
       createTab: () => {
         const state = get();
         const id = 't' + Date.now();
-        
-        // Find the maximum existing order number and add 1
         const maxNumber = Object.values(state.sessions).reduce((max, s) => Math.max(max, s.number), 0);
         const nextNumber = maxNumber + 1;
 
         set({
-          sessions: { 
-            ...state.sessions, 
-            [id]: { number: nextNumber, items: {}, discount: 0, discountType: 'fixed' } 
-          },
+          sessions: { ...state.sessions, [id]: { number: nextNumber, items: {}, discount: 0, discountType: 'fixed' } },
           activeTab: id
         });
       },
@@ -202,7 +190,6 @@ export const usePosStore = create<POSState>()(
         const items = { ...state.sessions[state.activeTab].items };
         const qtyToAdd = 1;
 
-        // Determine final price (Override > Variant > Base)
         const finalPrice = overridePrice || (v ? v.p : p.p);
 
         if (items[key]) {
@@ -243,7 +230,6 @@ export const usePosStore = create<POSState>()(
         });
       },
 
-      // ✅ NEW: Update custom price for an existing cart item
       updateItemPrice: (tabId, itemKey, newPrice) => {
         set((state) => {
           const session = state.sessions[tabId];
@@ -264,7 +250,7 @@ export const usePosStore = create<POSState>()(
               }
             };
           }
-          return state; // Return unchanged state if item doesn't exist
+          return state;
         });
       },
 
