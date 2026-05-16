@@ -1,5 +1,4 @@
 'use client';
-export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -13,7 +12,7 @@ interface StaffMember {
   role: string;
 }
 
-// ── Sidebar nav config (mirrors DashboardPage) ────────
+// ── Sidebar nav config ────────────────────────────────
 const NAV = [
   { label: 'Dashboard',    icon: 'fa-gauge-high',   href: '/dashboard' },
   { label: 'Transactions', icon: 'fa-receipt',       href: '/transactions' },
@@ -24,7 +23,7 @@ const NAV = [
   { label: 'Settings',     icon: 'fa-gear',          href: '/settings' },
 ];
 
-// ── Full-screen state wrapper (mirrors DashboardPage) ─
+// ── Full-screen state wrapper ─────────────────────────
 const FullScreen = ({ children }: { children: React.ReactNode }) => (
   <div className="flex min-h-screen bg-[#f4f6fb]">
     <div className="hidden md:block w-56 bg-[#0d1f3c] flex-shrink-0" />
@@ -254,9 +253,9 @@ export default function AdminPage() {
                 )}
 
                 {[
-                  { label: 'Full name', value: name, setter: setName, type: 'text', required: true },
-                  { label: 'Email address', value: email, setter: setEmail, type: 'email', required: true },
-                  { label: 'Password', value: password, setter: setPassword, type: 'password', required: true },
+                  { label: 'Full name',     value: name,     setter: setName,     type: 'text',     required: true },
+                  { label: 'Email address', value: email,    setter: setEmail,    type: 'email',    required: true },
+                  { label: 'Password',      value: password, setter: setPassword, type: 'password', required: true },
                 ].map(({ label, value, setter, type, required }) => (
                   <div key={label}>
                     <label className="block text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
