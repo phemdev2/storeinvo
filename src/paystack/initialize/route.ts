@@ -23,11 +23,13 @@ export async function POST(req: NextRequest) {
     });
 
     const data = await res.json();
+
     if (!data.status) {
       return NextResponse.json({ error: data.message }, { status: 400 });
     }
 
     return NextResponse.json({ url: data.data.authorization_url });
+
   } catch (err: any) {
     console.error('Paystack init error:', err);
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
