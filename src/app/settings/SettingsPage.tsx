@@ -17,7 +17,7 @@ const NAV = [
 
 // Paystack plan codes — replace with your actual codes from Paystack dashboard
 const PLANS = {
-  monthly:  { code: 'PLN_monthly_xxx',  amount: 9900,  label: 'Monthly',  period: '/mo'  },
+  monthly:  { code: 'PLN_f9ot8hc6p0f4bcq',  amount: 10000,  label: 'Monthly',  period: '/mo'  },
   annually: { code: 'PLN_annually_xxx', amount: 99000, label: 'Yearly',   period: '/yr'  },
 };
 
