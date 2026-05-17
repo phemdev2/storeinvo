@@ -11,7 +11,6 @@ export async function POST(req: NextRequest) {
   const body = await req.text();
   const signature = req.headers.get('x-paystack-signature');
 
-  // Verify webhook signature
   const hash = crypto
     .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY!)
     .update(body)
@@ -31,7 +30,7 @@ export async function POST(req: NextRequest) {
           .from('companies')
           .update({
             subscription_status: 'active',
-            subscription_plan: data.plan?.interval, // 'monthly' or 'annually'
+            subscription_plan: data.plan?.interval,
             subscription_ends_at: data.next_payment_date,
             paystack_customer_code: data.customer?.customer_code,
             paystack_subscription_code: data.subscription_code,
@@ -40,13 +39,14 @@ export async function POST(req: NextRequest) {
         break;
 
       case 'charge.success':
-        // Renew subscription period
         await supabaseAdmin
           .from('companies')
           .update({
             subscription_status: 'active',
             subscription_ends_at: data.paid_at
-              ? new Date(new Date(data.paid_at).setMonth(new Date(data.paid_at).getMonth() + 1)).toISOString()
+              ? new Date(new Date(data.paid_at).setMonth(
+                  new Date(data.paid_at).getMonth() + 1
+                )).toISOString()
               : null,
           })
           .eq('paystack_customer_code', data.customer?.customer_code);
