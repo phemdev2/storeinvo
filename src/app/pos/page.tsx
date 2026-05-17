@@ -4,6 +4,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePosStore } from '@/store/usePosStore';
+import { supabase } from '@/lib/supabase';
 import POSLayout from '@/components/POSLayout';
 import { Branch } from '@/lib/types';
 
@@ -143,11 +144,6 @@ export default function POSPage() {
     productsError,
   } = usePosStore();
 
-  // ── Hydrate products from localStorage immediately ──────────────
-  // usePosStore already persists products via zustand/persist,
-  // so products[] is populated from cache before any network call.
-  // We just need to avoid blocking render on the loading state
-  // when cached products exist.
   const hasCachedProducts = products.length > 0;
 
   // ── Fetch profile on mount ──────────────────────────────────────
@@ -162,6 +158,46 @@ export default function POSPage() {
     }
   }, [user, isLoading, router]);
 
+  // ── Check subscription status ───────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    const checkSub = async () => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      const { data: company } = await supabase
+        .from('companies')
+        .select('subscription_status, trial_ends_at, subscription_ends_at')
+        .eq('id', profile.company_id)
+        .single();
+
+      if (!company) return;
+
+      const now = new Date();
+
+      const trialExpired =
+        company.subscription_status === 'trial' &&
+        company.trial_ends_at &&
+        new Date(company.trial_ends_at) < now;
+
+      const subExpired =
+        company.subscription_status === 'expired' ||
+        (company.subscription_status === 'active' &&
+          company.subscription_ends_at &&
+          new Date(company.subscription_ends_at) < now);
+
+      if (trialExpired || subExpired) {
+        router.replace('/settings?tab=billing&reason=expired');
+      }
+    };
+    checkSub();
+  }, [user, router]);
+
   // ── Auto-select single branch ───────────────────────────────────
   useEffect(() => {
     if (user && branches.length === 1 && !activeBranchId) {
@@ -173,8 +209,6 @@ export default function POSPage() {
   useEffect(() => {
     if (user && activeBranchId && !hasFetchedProducts.current) {
       hasFetchedProducts.current = true;
-      // Always fetch fresh data, but if cache exists it renders immediately
-      // and the store updates silently in the background
       fetchProducts(activeBranchId);
     }
   }, [user, activeBranchId, fetchProducts]);
@@ -193,7 +227,7 @@ export default function POSPage() {
 
   // ── Render states ───────────────────────────────────────────────
 
-  // 1. Initial auth load — skip if we have cached products (feels instant)
+  // 1. Initial auth load
   if (isLoading || !user) {
     return (
       <FullScreenLoader
@@ -246,6 +280,6 @@ export default function POSPage() {
     );
   }
 
-  // 6. Ready — renders immediately if cache exists, updates silently
+  // 6. Ready
   return <POSLayout />;
 }

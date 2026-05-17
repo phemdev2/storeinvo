@@ -70,55 +70,38 @@ export const useAuthStore = create<AuthState>()(
       },
 
       registerCompany: async (companyName, branchName, name, email, password) => {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (authError) return authError.message;
-        if (!authData.user || !authData.session)
-          return 'Failed to create user session. Is email confirmation turned off?';
+  // 1. Sign up
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+  if (authError) return authError.message;
+  if (!authData.user || !authData.session)
+    return 'Failed to create user session. Is email confirmation turned off?';
 
-        try {
-          const { data: company, error: compError } = await supabase
-            .from('companies')
-            .insert({ name: companyName })
-            .select('id')
-            .single();
-          if (compError) throw new Error(compError.message);
+  // 2. Setup via service role API route
+  const res = await fetch('/api/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: authData.user.id,
+      companyName,
+      branchName,
+      name,
+    }),
+  });
 
-          const { error: profileError } = await supabase.from('profiles').insert({
-            id: authData.user.id,
-            company_id: company.id,
-            full_name: name,
-            role: 'admin',
-          });
-          if (profileError) throw new Error(profileError.message);
+  const data = await res.json();
 
-          const { data: branch, error: branchError } = await supabase
-            .from('branches')
-            .insert({ company_id: company.id, name: branchName })
-            .select('id')
-            .single();
-          if (branchError) throw new Error(branchError.message);
+  if (!res.ok) {
+    await supabase.auth.signOut();
+    return data.error || 'Setup failed. Please try again.';
+  }
 
-          set({ activeBranchId: branch.id });
-          return null;
-        } catch (setupError: any) {
-          console.error('Setup failed, deleting user:', setupError.message);
-          await supabase.auth.signOut();
-          await fetch(
-            `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/admin/users/${authData.user.id}`,
-            {
-              method: 'DELETE',
-              headers: {
-                apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-                'Content-Type': 'application/json',
-              },
-            }
-          );
-          return `Setup failed: ${setupError.message}`;
-        }
-      },
+  set({ activeBranchId: data.branchId });
+  await get().fetchProfile();
+  return null;
+},
 
       logout: async () => {
         await supabase.auth.signOut();
@@ -126,71 +109,79 @@ export const useAuthStore = create<AuthState>()(
       },
 
       fetchProfile: async () => {
-        // ✅ Clear previous errors when starting a fresh fetch
-        set({ isLoading: true, profileError: null }); 
+  set({ isLoading: true, profileError: null });
 
-        try {
-          const { data: { user }, error: authError } = await supabase.auth.getUser();
-          if (authError) throw authError;
+  try {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    // ── Auth session missing = not logged in, not an error ──
+    if (authError || !user) {
+      set({ isLoading: false, user: null, profile: null });
+      return;
+    }
 
-          if (!user) {
-            set({ isLoading: false });
-            return;
-          }
+    set({ user });
 
-          set({ user });
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
 
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
+    if (profileError) throw profileError;
 
-          if (profileError) throw profileError;
+    if (!profile) {
+      throw new Error('Profile missing for this user. Please delete this user in Supabase Auth and register again.');
+    }
 
-          if (!profile) {
-            throw new Error("Profile missing for this user. Please delete this user in Supabase Auth and register again.");
-          }
+    const { data: branches, error: branchError } = await supabase
+      .from('branches')
+      .select('id, name')
+      .eq('company_id', profile.company_id);
 
-          const { data: branches, error: branchError } = await supabase
-            .from('branches')
-            .select('id, name')
-            .eq('company_id', profile.company_id);
-          
-          if (branchError) throw branchError;
+    if (branchError) throw branchError;
 
-          set({
-            profile,
-            branches: branches || [],
-            activeBranchId:
-              get().activeBranchId ||
-              (branches && branches.length > 0 ? branches[0].id : null),
-            isLoading: false,
-            profileError: null, // Ensure error is cleared on success
-          });
-        } catch (error: any) {
-          console.error("Fetch profile error:", error.message);
-          
-          // If profile is fundamentally missing, sign them out
-          if (error.message.includes("Profile missing")) {
-            await supabase.auth.signOut();
-            set({ 
-              user: null, 
-              profile: null, 
-              branches: [], 
-              activeBranchId: null, 
-              isLoading: false, 
-              profileError: error.message 
-            });
-          } else {
-            // For network errors or RPC failures, keep them logged in but show the error screen
-            set({ 
-              profileError: error.message || "Failed to fetch profile data", 
-              isLoading: false 
-            });
-          }
-        }
-      },
+    set({
+      profile,
+      branches: branches || [],
+      activeBranchId:
+        get().activeBranchId ||
+        (branches && branches.length > 0 ? branches[0].id : null),
+      isLoading: false,
+      profileError: null,
+    });
+
+  } catch (error: any) {
+    console.error('Fetch profile error:', error.message);
+
+    // Auth session missing is not a real error — user just isn't logged in
+    if (
+      error.message?.includes('Auth session missing') ||
+      error.message?.includes('session_not_found') ||
+      error.message?.includes('JWT')
+    ) {
+      set({ user: null, profile: null, isLoading: false, profileError: null });
+      return;
+    }
+
+    if (error.message?.includes('Profile missing')) {
+      await supabase.auth.signOut();
+      set({
+        user: null,
+        profile: null,
+        branches: [],
+        activeBranchId: null,
+        isLoading: false,
+        profileError: error.message,
+      });
+    } else {
+      set({
+        profileError: error.message || 'Failed to fetch profile data',
+        isLoading: false,
+      });
+    }
+  }
+},
     }),
     {
       name: 'pos-auth-storage',

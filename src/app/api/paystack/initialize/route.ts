@@ -18,9 +18,8 @@ export async function POST(req: NextRequest) {
         email,
         plan,
         amount: 10000,
-        channels: ['bank_transfer'], // ← only show bank transfer option
         metadata: {
-          company_id: companyId,
+          company_id: companyId,  // ← this is what webhook uses to find the company
           cancel_action: `${process.env.NEXT_PUBLIC_APP_URL}/settings?tab=billing`,
         },
         callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/paystack/callback?company_id=${companyId}`,

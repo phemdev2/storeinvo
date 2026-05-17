@@ -68,12 +68,16 @@ export default function SettingsPage() {
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
 
   // Show success message if redirected back from Paystack
-  useEffect(() => {
-    if (searchParams.get('status') === 'success') {
-      setSuccessMsg('🎉 Payment successful! Your subscription is being activated.');
-    }
-    if (searchParams.get('tab') === 'billing') setActiveTab('billing');
-  }, [searchParams]);
+ useEffect(() => {
+  if (searchParams.get('status') === 'success') {
+    setSuccessMsg('🎉 Payment successful! Your subscription is being activated.');
+  }
+  if (searchParams.get('tab') === 'billing') setActiveTab('billing');
+  if (searchParams.get('reason') === 'expired') {
+    setActiveTab('billing');
+    setSuccessMsg(''); 
+  }
+}, [searchParams]);
 
   // Fetch subscription data
   useEffect(() => {
@@ -291,7 +295,17 @@ export default function SettingsPage() {
                   <p className="text-xs text-slate-400">No subscription data found.</p>
                 )}
               </div>
-
+{searchParams.get('reason') === 'expired' && (
+  <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700 flex items-start gap-3">
+    <i className="fas fa-lock mt-0.5 shrink-0"></i>
+    <div>
+      <p className="font-semibold mb-1">Your access has been restricted</p>
+      <p className="text-xs text-red-600">
+        Your trial or subscription has expired. Subscribe below to restore full access to POS, Dashboard, and all features.
+      </p>
+    </div>
+  </div>
+)}
               {/* Plans — only show if not active */}
               {(!sub || sub.subscription_status !== 'active') && isAdmin && (
                 <div className="bg-white border border-slate-200 rounded-xl p-5">

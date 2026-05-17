@@ -1,607 +1,488 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/useAuthStore';
-import { supabase } from '@/lib/supabase';
-import OrderDetailModal from '@/components/OrderDetailModal';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
-// ── Types ─────────────────────────────────────────────
-interface OrderRow {
-  id: string;
-  amount: number;
-  payment_method: string;
-  order_date: string;
-  user_name: string;
-  branch_name: string;
-}
-
-interface DashboardData {
-  cash_total: number;
-  pos_total: number;
-  bank_total: number;
-  total_sales: number;
-  total_profit: number;
-  branch_totals: { name: string; total_amount: number; total_orders: number }[];
-  recent_orders: OrderRow[];
-}
-
-interface TopItem {
-  item_name: string;
-  quantity_sold: number;
-  revenue: number;
-}
-
-type ColorKey = 'purple' | 'green' | 'blue' | 'yellow' | 'emerald';
-
-interface StatCardProps {
-  title: string;
-  amount: string;
-  icon: string;
-  color: ColorKey;
-}
-
-// ── UI CONFIG ─────────────────────────────────────────
-const colorMap: Record<ColorKey, string> = {
-  yellow:  'bg-amber-50  text-amber-800  border-amber-200',
-  emerald: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-  purple:  'bg-violet-50 text-violet-800 border-violet-200',
-  green:   'bg-teal-50   text-teal-800   border-teal-200',
-  blue:    'bg-sky-50    text-sky-800    border-sky-200',
-};
-
-const PAYMENT_BADGE: Record<string, string> = {
-  cash:   'bg-emerald-50 text-emerald-700 border border-emerald-200',
-  pos:    'bg-sky-50     text-sky-700     border border-sky-200',
-  bank:   'bg-violet-50  text-violet-700  border border-violet-200',
-  credit: 'bg-orange-50  text-orange-700  border border-orange-200',
-};
-
-const NAV = [
-  { label: 'Dashboard',    icon: 'fa-gauge-high',   href: '/dashboard' },
-  { label: 'Transactions', icon: 'fa-receipt',       href: '/transactions' },
-  { label: 'Branches',     icon: 'fa-store',         href: '/branches' },
-  { label: 'Staff',        icon: 'fa-users',         href: '/admin' },
-  { label: 'POS',          icon: 'fa-cash-register', href: '/pos' },
-  { label: 'Reports',      icon: 'fa-chart-bar',     href: '/reports' },
-  { label: 'Settings',     icon: 'fa-gear',          href: '/settings' },
+const FEATURES = [
+  {
+    icon: 'fa-cash-register',
+    title: 'Lightning-fast POS',
+    desc: 'Ring up sales in seconds. Barcode scanning, variant products, and custom pricing built in.',
+    color: 'bg-purple-50 text-purple-600',
+  },
+  {
+    icon: 'fa-layer-group',
+    title: 'Multi-branch support',
+    desc: 'Manage multiple store locations from one dashboard. Each branch, its own inventory.',
+    color: 'bg-blue-50 text-blue-600',
+  },
+  {
+    icon: 'fa-users',
+    title: 'Staff & roles',
+    desc: 'Create cashier accounts with limited access. Admins see everything, staff see what they need.',
+    color: 'bg-emerald-50 text-emerald-600',
+  },
+  {
+    icon: 'fa-chart-bar',
+    title: 'Real-time analytics',
+    desc: 'Track sales by branch, cashier, and payment method. Daily, weekly, and monthly reports.',
+    color: 'bg-amber-50 text-amber-600',
+  },
+  {
+    icon: 'fa-wifi',
+    title: 'Offline-ready',
+    desc: 'Keep selling even without internet. Orders sync automatically when you reconnect.',
+    color: 'bg-sky-50 text-sky-600',
+  },
+  {
+    icon: 'fa-receipt',
+    title: 'Smart receipts',
+    desc: 'Digital receipts with order history. Refunds and invoice lookup in one click.',
+    color: 'bg-rose-50 text-rose-600',
+  },
 ];
 
-const getStartOfDay = (date: Date) => {
-  const d = new Date(date); d.setHours(0, 0, 0, 0); return d.toISOString();
-};
-const getEndOfDay = (date: Date) => {
-  const d = new Date(date); d.setHours(23, 59, 59, 999); return d.toISOString();
-};
+const PLANS = [
+  {
+    name: 'Free Trial',
+    price: '₦0',
+    period: '14 days',
+    desc: 'Full access, no credit card required.',
+    features: ['All POS features', 'Up to 2 branches', 'Up to 5 staff', 'Basic reports'],
+    cta: 'Start free trial',
+    href: '/register',
+    highlight: false,
+  },
+  {
+    name: 'Monthly',
+    price: '₦100',
+    period: '/month',
+    desc: 'Flexible. Cancel anytime.',
+    features: ['Unlimited products', 'All branches', 'All staff accounts', 'Full analytics', 'Priority support'],
+    cta: 'Get started',
+    href: '/register',
+    highlight: false,
+  },
+  {
+    name: 'Yearly',
+    price: '₦990',
+    period: '/year',
+    desc: 'Save ~16% vs monthly.',
+    features: ['Everything in Monthly', 'Early access to features', 'Annual invoice', 'Dedicated support'],
+    cta: 'Best value',
+    href: '/register',
+    highlight: true,
+  },
+];
 
-// ── Sub-Components ────────────────────────────────────
-const StatCard = ({ title, amount, icon, color }: StatCardProps) => (
-  <div className={`${colorMap[color]} border rounded-xl p-4 hover:scale-[1.02] transition-transform`}>
-    <div className="flex items-center justify-between mb-3">
-      <span className="text-[10px] font-semibold uppercase tracking-widest opacity-70">{title}</span>
-      <i className={`fas fa-${icon} text-sm opacity-40`}></i>
-    </div>
-    <p className="text-lg font-bold tracking-tight">₦{amount}</p>
-  </div>
-);
+const TESTIMONIALS = [
+  {
+    name: 'Amara O.',
+    role: 'Fashion store owner, Lagos',
+    text: 'We went from pen-and-paper to full digital in one afternoon. The multi-branch feature alone saved us hours every week.',
+    avatar: 'AO',
+    color: 'bg-purple-100 text-purple-700',
+  },
+  {
+    name: 'Chidi N.',
+    role: 'Restaurant manager, Abuja',
+    text: 'The offline mode is a lifesaver. We never miss a sale even when NEPA takes the light and internet goes down.',
+    avatar: 'CN',
+    color: 'bg-emerald-100 text-emerald-700',
+  },
+  {
+    name: 'Fatima B.',
+    role: 'Supermarket owner, Kano',
+    text: 'My cashiers learned it in 10 minutes. The dashboard gives me everything I need to manage 3 branches remotely.',
+    avatar: 'FB',
+    color: 'bg-amber-100 text-amber-700',
+  },
+];
 
-const Table = ({ data, onView }: { data: OrderRow[]; onView: (id: string) => void }) => {
-  const formatter = useMemo(
-    () => new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2 }),
-    []
-  );
+const NAV_LINKS = [
+  { label: 'Features', href: '#features' },
+  { label: 'Pricing', href: '#pricing' },
+  { label: 'Testimonials', href: '#testimonials' },
+];
+
+export default function LandingPage() {
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
-    <>
-      {/* Desktop */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-100">
-              {['Order ID', 'Store', 'User', 'Payment', 'Amount', 'Date', ''].map((h, i) => (
-                <th key={i} className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {data.map((item, i) => (
-              <tr key={i} className="hover:bg-slate-50/60 transition-colors">
-                <td className="px-4 py-3 font-mono text-[11px] text-slate-400">POS/{item.id.slice(0, 8)}</td>
-                <td className="px-4 py-3 text-slate-700 font-medium text-xs">{item.branch_name || '—'}</td>
-                <td className="px-4 py-3 text-slate-500 text-xs">{item.user_name || 'Unknown'}</td>
-                <td className="px-4 py-3">
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md capitalize ${PAYMENT_BADGE[item.payment_method?.toLowerCase()] || 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
-                    {item.payment_method}
-                  </span>
-                </td>
-                <td className="px-4 py-3 font-semibold text-slate-800 text-xs">₦{formatter.format(item.amount)}</td>
-                <td className="px-4 py-3 text-slate-400 text-[11px]">{new Date(item.order_date).toLocaleString('en-NG')}</td>
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() => onView(item.id)}
-                    className="flex items-center gap-1.5 bg-[#0d1f3c] hover:bg-[#1a3660] text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors"
-                  >
-                    <i className="fas fa-eye text-[10px]"></i> View
-                  </button>
-                </td>
-              </tr>
+    <div className="min-h-screen bg-white text-slate-800 font-sans">
+
+      {/* ── Nav ── */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur border-b border-slate-100 shadow-sm' : 'bg-transparent'}`}>
+        <div className="max-w-6xl mx-auto px-5 md:px-8 py-4 flex items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-[#0d1f3c] rounded-lg flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-store text-white text-sm"></i>
+            </div>
+            <span className="font-bold text-[#0d1f3c] text-lg tracking-tight">StoreFlow</span>
+          </div>
+
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-6">
+            {NAV_LINKS.map((l) => (
+              <a key={l.label} href={l.href} className="text-sm text-slate-500 hover:text-[#0d1f3c] transition-colors font-medium">
+                {l.label}
+              </a>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </nav>
 
-      {/* Mobile */}
-      <div className="md:hidden divide-y divide-slate-100">
-        {data.map((item, i) => (
-          <div key={i} className="py-3 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="text-[11px] font-mono text-slate-400">POS/{item.id.slice(0, 8)}</span>
-                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded capitalize ${PAYMENT_BADGE[item.payment_method?.toLowerCase()] || 'bg-slate-100 text-slate-500'}`}>
-                  {item.payment_method}
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 truncate">{item.user_name || 'Unknown'} · {item.branch_name || '—'}</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">{new Date(item.order_date).toLocaleString('en-NG')}</p>
-            </div>
-            <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-              <span className="text-sm font-bold text-slate-800">₦{formatter.format(item.amount)}</span>
-              <button
-                onClick={() => onView(item.id)}
-                className="flex items-center gap-1 bg-[#0d1f3c] text-white px-2.5 py-1 rounded-lg text-[10px] font-semibold"
+          {/* CTA */}
+          <div className="hidden md:flex items-center gap-3">
+            <Link href="/login" className="text-sm font-semibold text-slate-600 hover:text-[#0d1f3c] transition-colors">
+              Sign in
+            </Link>
+            <Link
+              href="/register"
+              className="bg-[#0d1f3c] hover:bg-[#1a3660] text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+            >
+              Start free trial
+            </Link>
+          </div>
+
+          {/* Mobile menu btn */}
+          <button
+            className="md:hidden p-2 text-slate-600"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-lg`}></i>
+          </button>
+        </div>
+
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-slate-100 px-5 py-4 space-y-3">
+            {NAV_LINKS.map((l) => (
+              <a
+                key={l.label}
+                href={l.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className="block text-sm text-slate-600 font-medium py-1"
               >
-                <i className="fas fa-eye"></i> View
-              </button>
+                {l.label}
+              </a>
+            ))}
+            <div className="pt-2 flex flex-col gap-2">
+              <Link href="/login" className="text-center text-sm font-semibold text-slate-600 py-2 border border-slate-200 rounded-xl">
+                Sign in
+              </Link>
+              <Link href="/register" className="text-center bg-[#0d1f3c] text-white text-sm font-semibold py-2.5 rounded-xl">
+                Start free trial
+              </Link>
             </div>
           </div>
-        ))}
-      </div>
-    </>
-  );
-};
-
-const TopItemsSection = ({
-  items, loading, formatter,
-}: {
-  items: TopItem[];
-  loading: boolean;
-  formatter: Intl.NumberFormat;
-}) => {
-  const maxQty = items.length > 0 ? Math.max(...items.map((i) => i.quantity_sold)) : 1;
-  return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-semibold text-[#0d1f3c]">Top selling items</h2>
-          <p className="text-[11px] text-slate-400 mt-0.5">By quantity sold today</p>
-        </div>
-        <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
-          <i className="fas fa-fire text-amber-500 text-sm"></i>
-        </div>
-      </div>
-      <div className="px-5 py-3">
-        {loading ? (
-          <div className="py-10 text-center text-slate-400">
-            <i className="fas fa-spinner fa-spin text-xl mb-2 block opacity-30"></i>
-            <p className="text-xs">Loading items…</p>
-          </div>
-        ) : items.length === 0 ? (
-          <div className="py-10 text-center text-slate-400">
-            <i className="fas fa-box-open text-2xl mb-2 block opacity-20"></i>
-            <p className="text-xs">No item data for this period.</p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-slate-50">
-            {items.map((item, i) => {
-              const barWidth = Math.round((item.quantity_sold / maxQty) * 100);
-              const rankColors = ['bg-amber-400', 'bg-slate-300', 'bg-orange-300'];
-              return (
-                <li key={i} className="py-3 flex items-center gap-4">
-                  <span className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white ${rankColors[i] ?? 'bg-slate-200 text-slate-500'}`}>
-                    {i + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-semibold text-slate-700 truncate pr-2">{item.item_name}</span>
-                      <span className="text-[11px] text-slate-400 flex-shrink-0">{item.quantity_sold} sold</span>
-                    </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-[#0d1f3c] rounded-full transition-all duration-500" style={{ width: `${barWidth}%` }} />
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-slate-800 flex-shrink-0 w-24 text-right">
-                    ₦{formatter.format(item.revenue)}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
         )}
-      </div>
-    </div>
-  );
-};
+      </header>
 
-const FullScreen = ({ children }: { children: React.ReactNode }) => (
-  <div className="flex min-h-screen bg-[#f4f6fb]">
-    <div className="hidden md:block w-56 bg-[#0d1f3c] flex-shrink-0" />
-    <div className="flex-1 flex items-center justify-center">{children}</div>
-  </div>
-);
-
-// ── Main Page ─────────────────────────────────────────
-export default function DashboardPage() {
-  const router = useRouter();
-  const { profile, fetchProfile } = useAuthStore();
-
-  const [sessionChecked, setSessionChecked] = useState(false);
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [paymentFilter, setPaymentFilter] = useState('all');
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [topItems, setTopItems] = useState<TopItem[]>([]);
-  const [topItemsLoading, setTopItemsLoading] = useState(false);
-
-  const today = new Date();
-  const [startDate, setStartDate] = useState(getStartOfDay(today));
-  const [endDate, setEndDate] = useState(getEndOfDay(today));
-  const [activePreset, setActivePreset] = useState<'today' | 'week' | 'month' | 'custom'>('today');
-
-  // ── Session guard ─────────────────────────────────
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.replace('/login');
-        return;
-      }
-      setSessionChecked(true);
-      fetchProfile();
-    };
-    checkSession();
-  }, [router, fetchProfile]);
-
-  // ── Listen for auth changes (logout from another tab, token expiry) ──
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') router.replace('/login');
-    });
-    return () => subscription.unsubscribe();
-  }, [router]);
-
-  // ── Redirect non-admins ───────────────────────────
-  useEffect(() => {
-    if (profile && profile.role?.toLowerCase() !== 'admin') router.push('/pos');
-  }, [profile, router]);
-
-  const fetchStats = useCallback(async () => {
-    if (!profile?.company_id) return;
-    setLoading(true);
-    const { data: result, error } = await supabase.rpc('get_admin_dashboard', {
-      comp_id: profile.company_id,
-      p_start_date: startDate,
-      p_end_date: endDate,
-    });
-    if (error) {
-      console.error('Supabase RPC error:', error);
-      setData(null);
-    } else {
-      setData(result);
-    }
-    setLoading(false);
-  }, [profile?.company_id, startDate, endDate]);
-
-  const fetchTopItems = useCallback(async () => {
-    if (!profile?.company_id) return;
-    setTopItemsLoading(true);
-    try {
-      const { data: result, error } = await supabase.rpc('get_top_items', {
-        comp_id: profile.company_id,
-        p_start_date: startDate,
-        p_end_date: endDate,
-      });
-      if (error) { console.error('Top items error:', error); setTopItems([]); }
-      else setTopItems(result ?? []);
-    } catch (err) {
-      console.error('Failed to fetch top items:', err);
-      setTopItems([]);
-    }
-    setTopItemsLoading(false);
-  }, [profile?.company_id, startDate, endDate]);
-
-  useEffect(() => {
-    if (profile?.company_id && profile.role?.toLowerCase() === 'admin') {
-      fetchStats();
-      fetchTopItems();
-    }
-  }, [profile?.company_id, fetchStats, fetchTopItems]);
-
-  const handlePresetChange = (preset: 'today' | 'week' | 'month' | 'custom') => {
-    setActivePreset(preset);
-    const now = new Date();
-    if (preset === 'today') {
-      setStartDate(getStartOfDay(now)); setEndDate(getEndOfDay(now));
-    } else if (preset === 'week') {
-      const s = new Date(now); s.setDate(now.getDate() - now.getDay());
-      setStartDate(getStartOfDay(s)); setEndDate(getEndOfDay(now));
-    } else if (preset === 'month') {
-      setStartDate(getStartOfDay(new Date(now.getFullYear(), now.getMonth(), 1)));
-      setEndDate(getEndOfDay(now));
-    }
-  };
-
-  // ── Guards ────────────────────────────────────────
-  if (!sessionChecked) return (
-    <FullScreen>
-      <div className="text-center text-slate-400">
-        <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>
-        <p className="text-sm">Verifying session…</p>
-      </div>
-    </FullScreen>
-  );
-
-  if (!profile) return (
-    <FullScreen>
-      <div className="text-center text-slate-400">
-        <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>
-        <p className="text-sm">Loading session…</p>
-      </div>
-    </FullScreen>
-  );
-
-  if (profile.role?.toLowerCase() !== 'admin') return null;
-
-  if (loading) return (
-    <FullScreen>
-      <div className="text-center text-slate-400">
-        <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>
-        <p className="text-sm">Loading analytics…</p>
-      </div>
-    </FullScreen>
-  );
-
-  if (!data) return (
-    <FullScreen>
-      <div className="text-center text-red-400">
-        <i className="fas fa-exclamation-circle text-2xl mb-2 block"></i>
-        <p className="text-sm mb-3">Failed to load data.</p>
-        <button
-          onClick={fetchStats}
-          className="text-xs bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-lg font-semibold hover:bg-red-100 transition"
-        >
-          Retry
-        </button>
-      </div>
-    </FullScreen>
-  );
-
-  // ── Computed ──────────────────────────────────────
-  const formatter = new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2 });
-
-  const statCards: { title: string; amount: number; icon: string; color: ColorKey }[] = [
-    { title: 'Total Sales',  amount: data.total_sales,  icon: 'wallet',      color: 'yellow'  },
-    { title: 'Total Profit', amount: data.total_profit, icon: 'chart-line',  color: 'emerald' },
-    { title: 'Cash',         amount: data.cash_total,   icon: 'money-bill',  color: 'purple'  },
-    { title: 'POS',          amount: data.pos_total,    icon: 'credit-card', color: 'green'   },
-    { title: 'Bank',         amount: data.bank_total,   icon: 'university',  color: 'blue'    },
-  ];
-
-  const filteredOrders = paymentFilter === 'all'
-    ? data.recent_orders
-    : data.recent_orders.filter((o) => o.payment_method.toLowerCase() === paymentFilter);
-
-  // ── Render ────────────────────────────────────────
-  return (
-    <div className="flex min-h-screen bg-[#f4f6fb]">
-
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/40 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
-
-      {/* ── Sidebar ── */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-30 w-56 bg-[#0d1f3c] flex flex-col
-        transform transition-transform duration-200
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        md:relative md:translate-x-0 md:flex-shrink-0
-      `}>
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-white/10">
-          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
-            <i className="fas fa-store text-white text-sm"></i>
+      {/* ── Hero ── */}
+      <section className="pt-32 pb-20 md:pt-40 md:pb-28 px-5 md:px-8 bg-gradient-to-b from-slate-50 to-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6 border border-blue-100">
+            <i className="fas fa-bolt text-[10px]"></i>
+            Built for Nigerian businesses
           </div>
-          <span className="text-white font-semibold text-sm tracking-wide">POSAdmin</span>
-        </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {NAV.map((item) => {
-            const active = item.href === '/dashboard';
-            return (
-              <button
-                key={item.href}
-                onClick={() => router.push(item.href)}
-                className={`
-                  w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left
-                  ${active ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white/90 hover:bg-white/5'}
-                `}
-              >
-                <i className={`fas ${item.icon} w-4 text-center text-sm`}></i>
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
+          <h1 className="text-4xl md:text-6xl font-bold text-[#0d1f3c] leading-tight mb-6 tracking-tight">
+            The POS that runs
+            <br />
+            <span className="text-blue-600">your entire store</span>
+          </h1>
 
-        {/* Profile footer */}
-<div className="px-3 py-4 border-t border-white/10">
-  <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors">
-    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-      {(profile.full_name || 'A').charAt(0).toUpperCase()}
-    </div>
-    <div className="min-w-0 flex-1">
-      <p className="text-white text-xs font-semibold truncate">{profile.full_name || 'Admin'}</p>
-      <p className="text-white/40 text-[10px]">Super Admin</p>
-    </div>
-    <button
-  onClick={() => router.push('/login')}
-  title="Sign out"
-  className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-white hover:text-red-400 hover:bg-white/10 transition-colors"
->
-  <i className="fas fa-arrow-right-from-bracket text-xs"></i>
-</button>
-  </div>
-</div>
-      </aside>
+          <p className="text-lg md:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+            Sell faster, track smarter, manage better. StoreFlow gives small businesses a powerful point-of-sale system that works online and offline.
+          </p>
 
-      {/* ── Main ── */}
-      <div className="flex-1 flex flex-col min-w-0">
-
-        <header className="bg-white border-b border-slate-200 px-5 md:px-6 py-3.5 flex items-center justify-between gap-3 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <button
-              className="md:hidden p-1.5 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors"
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Open menu"
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href="/register"
+              className="bg-[#0d1f3c] hover:bg-[#1a3660] text-white font-semibold px-8 py-3.5 rounded-xl transition-colors text-sm flex items-center justify-center gap-2"
             >
-              <i className="fas fa-bars text-sm"></i>
-            </button>
-            <div>
-              <h1 className="text-sm font-bold text-[#0d1f3c] leading-tight">Dashboard</h1>
-              <p className="text-[11px] text-slate-400 leading-tight">Welcome back, {profile.full_name || 'Admin'}</p>
+              Start free for 14 days
+              <i className="fas fa-arrow-right text-xs"></i>
+            </Link>
+            <Link
+              href="/login"
+              className="bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold px-8 py-3.5 rounded-xl transition-colors text-sm"
+            >
+              Sign in to your account
+            </Link>
+          </div>
+
+          <p className="text-xs text-slate-400 mt-4">
+            No credit card required · Cancel anytime · Setup in minutes
+          </p>
+
+          {/* Hero mockup */}
+          <div className="mt-16 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden max-w-3xl mx-auto">
+            <div className="bg-[#0d1f3c] px-4 py-3 flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+              <span className="text-white/40 text-xs ml-2 font-mono">storeflow.app/pos</span>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={fetchStats}
-              title="Refresh"
-              className="p-2 text-slate-400 hover:text-[#0d1f3c] hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              <i className="fas fa-arrows-rotate text-sm"></i>
-            </button>
-            <button
-              onClick={() => router.push('/admin')}
-              className="hidden sm:flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-            >
-              <i className="fas fa-users-gear text-xs"></i> Staff
-            </button>
-            <button
-              onClick={() => router.push('/pos')}
-              className="flex items-center gap-1.5 bg-[#0d1f3c] hover:bg-[#1a3660] text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-            >
-              <i className="fas fa-cash-register text-xs"></i>
-              <span>Open POS</span>
-            </button>
-          </div>
-        </header>
-
-        <main className="flex-1 p-4 md:p-6 space-y-4 overflow-y-auto">
-
-          {/* Date filter */}
-          <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="flex gap-1.5 flex-wrap">
-              {(['today', 'week', 'month', 'custom'] as const).map((p) => {
-                const labels = { today: 'Today', week: 'This week', month: 'This month', custom: 'Custom' };
-                return (
-                  <button
-                    key={p}
-                    onClick={() => handlePresetChange(p)}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                      activePreset === p
-                        ? 'bg-[#0d1f3c] text-white border-[#0d1f3c]'
-                        : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    {labels[p]}
-                  </button>
-                );
-              })}
-            </div>
-
-            {activePreset === 'custom' && (
-              <div className="flex items-center gap-2 flex-1">
-                <input
-                  type="date"
-                  value={startDate.split('T')[0]}
-                  onChange={(e) => setStartDate(getStartOfDay(new Date(e.target.value)))}
-                  className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 flex-1"
-                />
-                <span className="text-slate-300 text-xs">→</span>
-                <input
-                  type="date"
-                  value={endDate.split('T')[0]}
-                  onChange={(e) => setEndDate(getEndOfDay(new Date(e.target.value)))}
-                  className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 flex-1"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Stat cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {statCards.map((card) => (
-              <StatCard key={card.title} title={card.title} amount={formatter.format(card.amount)} icon={card.icon} color={card.color} />
-            ))}
-          </div>
-
-          {/* Branch cards */}
-          {data.branch_totals.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {data.branch_totals.map((branch, i) => (
-                <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 hover:border-slate-300 transition-colors">
-                  <div className="w-9 h-9 bg-[#0d1f3c]/5 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <i className="fas fa-store text-[#0d1f3c]/60 text-sm"></i>
+            <div className="p-5 bg-slate-50 grid grid-cols-3 gap-3">
+              {['Ankara Fabric', 'Hair Cream', 'Phone Case', 'Sneakers', 'Face Powder', 'Perfume'].map((item, i) => (
+                <div key={i} className="bg-white rounded-xl p-3 border border-slate-100 text-left">
+                  <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center mb-2">
+                    <i className="fas fa-box text-purple-500 text-xs"></i>
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-slate-800 text-sm truncate">{branch.name}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {branch.total_orders} orders · ₦{formatter.format(branch.total_amount)}
-                    </p>
-                  </div>
+                  <p className="text-[11px] font-semibold text-slate-700 truncate">{item}</p>
+                  <p className="text-[10px] text-emerald-600 font-bold mt-0.5">₦{(Math.random() * 10000 + 500).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</p>
                 </div>
               ))}
             </div>
-          )}
+          </div>
+        </div>
+      </section>
 
-          <TopItemsSection items={topItems} loading={topItemsLoading} formatter={formatter} />
+      {/* ── Stats ── */}
+      <section className="py-12 border-y border-slate-100 bg-white">
+        <div className="max-w-4xl mx-auto px-5 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          {[
+            { value: '10,000+', label: 'Transactions daily' },
+            { value: '500+', label: 'Active businesses' },
+            { value: '99.9%', label: 'Uptime' },
+            { value: '< 2min', label: 'Setup time' },
+          ].map((s) => (
+            <div key={s.label}>
+              <p className="text-2xl md:text-3xl font-bold text-[#0d1f3c]">{s.value}</p>
+              <p className="text-xs text-slate-400 mt-1 font-medium">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          {/* Transactions table */}
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-[#0d1f3c]">Transactions</h2>
-              <select
-                className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-600 bg-white focus:ring-2 focus:ring-blue-500 outline-none w-full sm:w-auto"
-                value={paymentFilter}
-                onChange={(e) => setPaymentFilter(e.target.value)}
+      {/* ── Features ── */}
+      <section id="features" className="py-20 md:py-28 px-5 md:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#0d1f3c] mb-4">Everything you need to run your store</h2>
+            <p className="text-slate-500 max-w-xl mx-auto">From the sales floor to the back office, StoreFlow has you covered.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {FEATURES.map((f) => (
+              <div key={f.title} className="bg-white border border-slate-100 rounded-2xl p-6 hover:border-slate-200 hover:shadow-sm transition-all">
+                <div className={`w-10 h-10 ${f.color} rounded-xl flex items-center justify-center mb-4`}>
+                  <i className={`fas ${f.icon} text-sm`}></i>
+                </div>
+                <h3 className="font-bold text-[#0d1f3c] mb-2 text-sm">{f.title}</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── How it works ── */}
+      <section className="py-20 md:py-28 px-5 md:px-8 bg-slate-50">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#0d1f3c] mb-4">Up and running in minutes</h2>
+            <p className="text-slate-500">No technical skills required.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { step: '01', icon: 'fa-user-plus', title: 'Create your account', desc: 'Sign up with your email, set up your company and first branch.' },
+              { step: '02', icon: 'fa-box-open', title: 'Add your products', desc: 'Import your inventory, set prices, and add variants and barcodes.' },
+              { step: '03', icon: 'fa-cash-register', title: 'Start selling', desc: 'Open the POS, add items to cart, collect payment. That simple.' },
+            ].map((s) => (
+              <div key={s.step} className="relative">
+                <div className="bg-white rounded-2xl p-6 border border-slate-200 h-full">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-3xl font-black text-slate-100">{s.step}</span>
+                    <div className="w-9 h-9 bg-[#0d1f3c] rounded-xl flex items-center justify-center">
+                      <i className={`fas ${s.icon} text-white text-xs`}></i>
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-[#0d1f3c] mb-2 text-sm">{s.title}</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed">{s.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Pricing ── */}
+      <section id="pricing" className="py-20 md:py-28 px-5 md:px-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#0d1f3c] mb-4">Simple, honest pricing</h2>
+            <p className="text-slate-500">Start free. Upgrade when you're ready.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-5">
+            {PLANS.map((plan) => (
+              <div
+                key={plan.name}
+                className={`rounded-2xl p-6 border relative ${
+                  plan.highlight
+                    ? 'bg-[#0d1f3c] border-[#0d1f3c] text-white'
+                    : 'bg-white border-slate-200'
+                }`}
               >
-                <option value="all">All methods</option>
-                <option value="cash">Cash</option>
-                <option value="pos">POS</option>
-                <option value="bank">Bank</option>
-                <option value="credit">Credit</option>
-              </select>
+                {plan.highlight && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="bg-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                      Best value
+                    </span>
+                  </div>
+                )}
+
+                <div className="mb-5">
+                  <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${plan.highlight ? 'text-white/60' : 'text-slate-400'}`}>
+                    {plan.name}
+                  </p>
+                  <div className="flex items-baseline gap-1">
+                    <span className={`text-3xl font-black ${plan.highlight ? 'text-white' : 'text-[#0d1f3c]'}`}>
+                      {plan.price}
+                    </span>
+                    <span className={`text-sm ${plan.highlight ? 'text-white/60' : 'text-slate-400'}`}>
+                      {plan.period}
+                    </span>
+                  </div>
+                  <p className={`text-xs mt-1 ${plan.highlight ? 'text-white/60' : 'text-slate-400'}`}>
+                    {plan.desc}
+                  </p>
+                </div>
+
+                <ul className="space-y-2.5 mb-6">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-xs">
+                      <i className={`fas fa-check text-[10px] ${plan.highlight ? 'text-emerald-400' : 'text-emerald-500'}`}></i>
+                      <span className={plan.highlight ? 'text-white/80' : 'text-slate-600'}>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href={plan.href}
+                  className={`block text-center py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                    plan.highlight
+                      ? 'bg-white text-[#0d1f3c] hover:bg-slate-100'
+                      : 'bg-[#0d1f3c] text-white hover:bg-[#1a3660]'
+                  }`}
+                >
+                  {plan.cta}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Testimonials ── */}
+      <section id="testimonials" className="py-20 md:py-28 px-5 md:px-8 bg-slate-50">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#0d1f3c] mb-4">Loved by store owners</h2>
+            <p className="text-slate-500">Real businesses, real results.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-5">
+            {TESTIMONIALS.map((t) => (
+              <div key={t.name} className="bg-white rounded-2xl p-6 border border-slate-100">
+                <div className="flex items-center gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <i key={i} className="fas fa-star text-amber-400 text-xs"></i>
+                  ))}
+                </div>
+                <p className="text-slate-600 text-sm leading-relaxed mb-5">"{t.text}"</p>
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-full ${t.color} flex items-center justify-center text-xs font-bold flex-shrink-0`}>
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[#0d1f3c]">{t.name}</p>
+                    <p className="text-[10px] text-slate-400">{t.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA ── */}
+      <section className="py-20 md:py-28 px-5 md:px-8 bg-[#0d1f3c]">
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Ready to modernise your store?</h2>
+          <p className="text-white/60 mb-8 text-lg">Join hundreds of Nigerian businesses already using StoreFlow.</p>
+          <Link
+            href="/register"
+            className="inline-flex items-center gap-2 bg-white hover:bg-slate-100 text-[#0d1f3c] font-bold px-8 py-4 rounded-xl transition-colors text-sm"
+          >
+            Start your free 14-day trial
+            <i className="fas fa-arrow-right text-xs"></i>
+          </Link>
+          <p className="text-white/40 text-xs mt-4">No credit card required</p>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="bg-[#080f1e] py-12 px-5 md:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between gap-8 mb-10">
+            <div className="max-w-xs">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-7 h-7 bg-blue-500 rounded-lg flex items-center justify-center">
+                  <i className="fas fa-store text-white text-xs"></i>
+                </div>
+                <span className="font-bold text-white text-base">StoreFlow</span>
+              </div>
+              <p className="text-white/40 text-sm leading-relaxed">
+                A modern point-of-sale system built for Nigerian retail businesses.
+              </p>
             </div>
 
-            <div className="px-4 py-3">
-              {filteredOrders.length > 0 ? (
-                <Table data={filteredOrders} onView={(id) => setSelectedOrderId(id)} />
-              ) : (
-                <div className="py-14 text-center text-slate-400">
-                  <i className="fas fa-inbox text-3xl mb-3 block opacity-20"></i>
-                  <p className="text-sm">No transactions found for this period.</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+              {[
+                {
+                  heading: 'Product',
+                  links: ['Features', 'Pricing', 'Changelog'],
+                },
+                {
+                  heading: 'Company',
+                  links: ['About', 'Contact', 'Privacy'],
+                },
+                {
+                  heading: 'Account',
+                  links: ['Sign in', 'Register', 'Settings'],
+                },
+              ].map((col) => (
+                <div key={col.heading}>
+                  <p className="text-white/30 text-[10px] uppercase tracking-widest font-semibold mb-3">{col.heading}</p>
+                  <ul className="space-y-2">
+                    {col.links.map((l) => (
+                      <li key={l}>
+                        <a href="#" className="text-white/50 hover:text-white text-sm transition-colors">{l}</a>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              )}
+              ))}
             </div>
           </div>
 
-        </main>
-      </div>
-
-      {selectedOrderId && (
-        <OrderDetailModal orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
-      )}
+          <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row justify-between items-center gap-3">
+            <p className="text-white/30 text-xs">© 2026 StoreFlow. All rights reserved.</p>
+            <p className="text-white/20 text-xs">Built for Nigerian businesses 🇳🇬</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

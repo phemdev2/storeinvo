@@ -101,7 +101,7 @@ export default function POSLayout() {
         {/* ... Nav Contents Unchanged ... */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded bg-purple-600 flex items-center justify-center font-bold text-lg">P</div>
-          <span className="font-bold text-lg hidden lg:block">Next.js POS</span>
+          <span className="font-bold text-lg hidden lg:block">STOREFLOW POS</span>
 
         {isAdmin && (
   <Link 
