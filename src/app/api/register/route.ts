@@ -6,15 +6,34 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 30);
+}
+
 export async function POST(req: NextRequest) {
   const { userId, companyName, branchName, name } = await req.json();
 
   try {
-    // 1. Create company
+    // Generate unique slug
+    let slug = generateSlug(companyName);
+    const { data: existing } = await supabaseAdmin
+      .from('companies')
+      .select('slug')
+      .eq('slug', slug)
+      .single();
+    if (existing) slug = `${slug}-${Date.now().toString().slice(-4)}`;
+
+    // 1. Create company with slug
     const { data: company, error: compError } = await supabaseAdmin
       .from('companies')
-      .insert({ name: companyName })
-      .select('id')
+      .insert({ name: companyName, slug })
+      .select('id, slug')
       .single();
     if (compError) throw new Error(compError.message);
 
@@ -37,10 +56,9 @@ export async function POST(req: NextRequest) {
       .single();
     if (branchError) throw new Error(branchError.message);
 
-    return NextResponse.json({ branchId: branch.id });
+    return NextResponse.json({ branchId: branch.id, slug: company.slug });
 
   } catch (err: any) {
-    // Rollback — delete the auth user
     await supabaseAdmin.auth.admin.deleteUser(userId);
     return NextResponse.json({ error: err.message }, { status: 400 });
   }

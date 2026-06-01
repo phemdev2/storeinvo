@@ -1,30 +1,30 @@
 // lib/types.ts
-
-// ── Branch & Auth Types ──────────────────────────
+// ── Branch & Auth Types ────────────────────────────
 export interface Branch {
   id: string;
   name: string;
-  location?: string; // ✅ ADDED: Optional to fix the TypeScript build error
+  location?: string;
 }
 
 // ── Product & Variant Types ───────────────────────
 export interface Variant {
   id: string | number;
-  n: string; 
-  q: number; 
-  p: number; 
+  n: string;
+  q: number;
+  p: number;
   is_var?: boolean;
 }
 
 export interface Product {
   id: string | number;
-  n: string; 
-  b: string; 
-  p: number; 
-  s: number; 
+  n: string;
+  b: string;
+  p: number;
+  s: number;
   v: Variant[];
   is_var?: boolean;
-  cost?: number; // ✅ ADDED: Used for profit calculations in the dashboard
+  cost?: number;
+  image_url?: string; // ✅ ADDED: Product image
 }
 
 // ── Cart & Order Types ────────────────────────────
@@ -36,6 +36,7 @@ export interface CartItem {
   v_name: string | null;
   vid: string | null;
   qty: number;
+  image_url?: string; // ✅ ADDED: Carried over from Product for cart display
 }
 
 export interface CartSession {
@@ -55,7 +56,7 @@ export interface Order {
   total: number;
   raw_total: number;
   user_name: string;
-  customer_name?: string | null; 
+  customer_name?: string | null;
   customer_phone?: string | null;
 }
 
@@ -67,6 +68,7 @@ export interface DatabaseProduct {
   price: number;
   stock: number;
   variants: DatabaseVariant[];
+  image_url?: string; // ✅ ADDED: Matches DB column if present
 }
 
 export interface DatabaseVariant {

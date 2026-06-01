@@ -223,26 +223,33 @@ export default function LandingPage() {
             No credit card required · Cancel anytime · Setup in minutes
           </p>
 
-          {/* Hero mockup */}
-          <div className="mt-16 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden max-w-3xl mx-auto">
-            <div className="bg-[#0d1f3c] px-4 py-3 flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
-              <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
-              <span className="text-white/40 text-xs ml-2 font-mono">storeflow.app/pos</span>
-            </div>
-            <div className="p-5 bg-slate-50 grid grid-cols-3 gap-3">
-              {['Ankara Fabric', 'Hair Cream', 'Phone Case', 'Sneakers', 'Face Powder', 'Perfume'].map((item, i) => (
-                <div key={i} className="bg-white rounded-xl p-3 border border-slate-100 text-left">
-                  <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center mb-2">
-                    <i className="fas fa-box text-purple-500 text-xs"></i>
-                  </div>
-                  <p className="text-[11px] font-semibold text-slate-700 truncate">{item}</p>
-                  <p className="text-[10px] text-emerald-600 font-bold mt-0.5">₦{(Math.random() * 10000 + 500).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+         {/* Hero mockup */}
+<div className="mt-16 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden max-w-3xl mx-auto">
+  <div className="bg-[#0d1f3c] px-4 py-3 flex items-center gap-2">
+    <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+    <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
+    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+    <span className="text-white/40 text-xs ml-2 font-mono">storeflow.app/pos</span>
+  </div>
+  <div className="p-5 bg-slate-50 grid grid-cols-3 gap-3">
+    {[
+      { name: 'Ankara Fabric',  price: '4,500' },
+      { name: 'Hair Cream',     price: '1,200' },
+      { name: 'Phone Case',     price: '2,800' },
+      { name: 'Sneakers',       price: '9,500' },
+      { name: 'Face Powder',    price: '3,100' },
+      { name: 'Perfume',        price: '6,750' },
+    ].map((item) => (
+      <div key={item.name} className="bg-white rounded-xl p-3 border border-slate-100 text-left">
+        <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center mb-2">
+          <i className="fas fa-box text-purple-500 text-xs"></i>
+        </div>
+        <p className="text-[11px] font-semibold text-slate-700 truncate">{item.name}</p>
+        <p className="text-[10px] text-emerald-600 font-bold mt-0.5">₦{item.price}</p>
+      </div>
+    ))}
+  </div>
+</div>
         </div>
       </section>
 

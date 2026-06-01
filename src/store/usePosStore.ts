@@ -69,7 +69,7 @@ export const usePosStore = create<POSState>()(
       variantModalProduct: null,
       crudModalOpen: false,
       editingProduct: null,
-      isLoadingProducts: true,
+      isLoadingProducts: false,
       productsError: null,
 
       products: [],
@@ -95,6 +95,8 @@ export const usePosStore = create<POSState>()(
 
       // ==========================================
       // DATA ACTIONS (SUPABASE)
+      // Kept for POS page compatibility — fetches ALL products for the cart.
+      // The Products admin page uses its own direct Supabase queries (paginated).
       // ==========================================
       fetchProducts: async (branchId: string) => {
         if (!branchId) return;
@@ -113,18 +115,8 @@ export const usePosStore = create<POSState>()(
             const { data, error } = await supabase
               .from('products')
               .select(`
-                id,
-                name,
-                barcode,
-                price,
-                stock,
-                cost,
-                is_variable_price,
-                variants (
-                  id,
-                  variant_name,
-                  price
-                )
+                id, name, category, barcode, price, stock, cost, is_variable_price, image_url,  variants ( id, variant_name, price )
+                variants ( id, variant_name, price )
               `)
               .eq('branch_id', branchId)
               .order('name', { ascending: true })
@@ -134,11 +126,8 @@ export const usePosStore = create<POSState>()(
 
             if (data && data.length > 0) {
               allProducts = [...allProducts, ...data];
-              if (data.length < pageSize) {
-                hasMore = false;
-              } else {
-                page++;
-              }
+              hasMore = data.length === pageSize;
+              page++;
             } else {
               hasMore = false;
             }
@@ -147,9 +136,11 @@ export const usePosStore = create<POSState>()(
           const mappedData: Product[] = allProducts.map((item: any) => ({
             id: item.id,
             n: item.name,
+            c: item.category,
             b: item.barcode,
             p: item.price,
             s: item.stock,
+            image_url: item.image_url || null,
             cost: item.cost || 0,
             is_var: item.is_variable_price || (item.variants?.length > 0),
             v: item.variants?.map((variant: any) => ({
@@ -160,18 +151,9 @@ export const usePosStore = create<POSState>()(
           }));
 
           set({ products: mappedData, isLoadingProducts: false, productsError: null });
-
         } catch (error: any) {
-          console.error('Supabase fetch error:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code,
-          });
-          set({
-            isLoadingProducts: false,
-            productsError: error.message || 'Failed to load products',
-          });
+          console.error('Supabase fetch error:', error);
+          set({ isLoadingProducts: false, productsError: error.message || 'Failed to load products' });
         }
       },
 
@@ -387,7 +369,6 @@ export const usePosStore = create<POSState>()(
 
           usePosStore.setState({ queue: usePosStore.getState().queue.slice(1) });
           console.log(`[Supabase] Order ${orderToSync.id} synced.`);
-
         } catch (error: any) {
           const msg = error.message || JSON.stringify(error);
           if (msg.includes('duplicate key') || msg.includes('409')) {
@@ -445,13 +426,15 @@ export const usePosStore = create<POSState>()(
       },
     }),
     {
-  name: 'pos-cart-storage',
-  partialize: (state) => ({
-    sessions: state.sessions,
-    activeTab: state.activeTab,
-    queue: state.queue,
-    products: state.products,
-  }),
-}
+      name: 'pos-cart-storage',
+      // ⚠️ products intentionally excluded — 8k items in localStorage kills hydration speed.
+      // The POS page fetches on mount; the Products page queries Supabase directly (paginated).
+      partialize: (state) => ({
+        sessions: state.sessions,
+        activeTab: state.activeTab,
+        queue: state.queue,
+        // products NOT included
+      }),
+    }
   )
 );

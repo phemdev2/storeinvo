@@ -1,8 +1,10 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { supabase } from '@/lib/supabase';
+import Sidebar from '@/components/Sidebar';
 
 // ── Types ─────────────────────────────────────────────
 interface StaffMember {
@@ -12,22 +14,11 @@ interface StaffMember {
   role: string;
 }
 
-// ── Sidebar nav config (mirrors DashboardPage) ────────
-const NAV = [
-  { label: 'Dashboard',    icon: 'fa-gauge-high',   href: '/dashboard' },
-  { label: 'Transactions', icon: 'fa-receipt',       href: '/transactions' },
-  { label: 'Branches',     icon: 'fa-store',         href: '/branches' },
-  { label: 'Staff',        icon: 'fa-users',         href: '/admin' },
-  { label: 'POS',          icon: 'fa-cash-register', href: '/pos' },
-  { label: 'Reports',      icon: 'fa-chart-bar',     href: '/reports' },
-  { label: 'Settings',     icon: 'fa-gear',          href: '/settings' },
-];
-
-// ── Full-screen state wrapper ─────────────────────────
+// ── FullScreen wrapper (matches DashboardPage) ────────
 const FullScreen = ({ children }: { children: React.ReactNode }) => (
   <div className="flex min-h-screen bg-[#f4f6fb]">
     <div className="hidden md:block w-56 bg-[#0d1f3c] flex-shrink-0" />
-    <div className="flex-1 flex items-center justify-center">{children}</div>
+    <div className="flex-1 flex items-center justify-center p-6">{children}</div>
   </div>
 );
 
@@ -56,6 +47,14 @@ export default function AdminPage() {
   useEffect(() => {
     if (profile?.company_id) fetchStaff();
   }, [profile]);
+
+  // ── Auth state listener ───────────────────────────
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') router.replace('/login');
+    });
+    return () => subscription.unsubscribe();
+  }, [router]);
 
   // ── Functions ─────────────────────────────────────
   const fetchStaff = async () => {
@@ -135,71 +134,9 @@ export default function AdminPage() {
   // ── Render ────────────────────────────────────────
   return (
     <div className="flex min-h-screen bg-[#f4f6fb]">
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-20 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* ── Sidebar ── */}
-      <aside
-        className={`
-          fixed inset-y-0 left-0 z-30 w-56 bg-[#0d1f3c] flex flex-col
-          transform transition-transform duration-200
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:relative md:translate-x-0 md:flex-shrink-0
-        `}
-      >
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-white/10">
-          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
-            <i className="fas fa-store text-white text-sm"></i>
-          </div>
-          <span className="text-white font-semibold text-sm tracking-wide">POSAdmin</span>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {NAV.map((item) => {
-            const active = item.href === '/admin';
-            return (
-              <button
-                key={item.href}
-                onClick={() => router.push(item.href)}
-                className={`
-                  w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left
-                  ${active
-                    ? 'bg-blue-600 text-white'
-                    : 'text-white/50 hover:text-white/90 hover:bg-white/5'}
-                `}
-              >
-                <i className={`fas ${item.icon} w-4 text-center text-sm`}></i>
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Profile footer */}
-        <div className="px-3 py-4 border-t border-white/10">
-          <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {(profile.full_name || 'A').charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <p className="text-white text-xs font-semibold truncate">{profile.full_name || 'Admin'}</p>
-              <p className="text-white/40 text-[10px]">Super Admin</p>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Main ── */}
       <div className="flex-1 flex flex-col min-w-0">
-
         {/* Top bar */}
         <header className="bg-white border-b border-slate-200 px-5 md:px-6 py-3.5 flex items-center justify-between gap-3 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -215,7 +152,6 @@ export default function AdminPage() {
               <p className="text-[11px] text-slate-400 leading-tight">Create users and assign roles</p>
             </div>
           </div>
-
           <button
             onClick={() => router.push('/dashboard')}
             className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
@@ -253,17 +189,17 @@ export default function AdminPage() {
                 )}
 
                 {[
-                  { label: 'Full name',      value: name,     setter: setName,     type: 'text',     required: true },
-                  { label: 'Email address',  value: email,    setter: setEmail,    type: 'email',    required: true },
-                  { label: 'Password',       value: password, setter: setPassword, type: 'password', required: true },
-                ].map(({ label, value, setter, type, required }) => (
+                  { label: 'Full name',     value: name,     setter: setName,     type: 'text'     },
+                  { label: 'Email address', value: email,    setter: setEmail,    type: 'email'    },
+                  { label: 'Password',      value: password, setter: setPassword, type: 'password' },
+                ].map(({ label, value, setter, type }) => (
                   <div key={label}>
                     <label className="block text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
                       {label}
                     </label>
                     <input
                       type={type}
-                      required={required}
+                      required
                       minLength={type === 'password' ? 6 : undefined}
                       value={value}
                       onChange={(e) => setter(e.target.value)}
@@ -291,11 +227,9 @@ export default function AdminPage() {
                   disabled={isSubmitting || !profile?.company_id}
                   className="w-full py-2.5 bg-[#0d1f3c] hover:bg-[#1a3660] text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? (
-                    <><i className="fas fa-spinner fa-spin"></i> Creating…</>
-                  ) : (
-                    <><i className="fas fa-user-plus"></i> Create user</>
-                  )}
+                  {isSubmitting
+                    ? <><i className="fas fa-spinner fa-spin"></i> Creating…</>
+                    : <><i className="fas fa-user-plus"></i> Create user</>}
                 </button>
               </form>
             </div>
@@ -309,11 +243,8 @@ export default function AdminPage() {
                     <p className="text-[11px] text-slate-400 mt-0.5">{staff.length} member{staff.length !== 1 ? 's' : ''}</p>
                   )}
                 </div>
-                <button
-                  onClick={fetchStaff}
-                  className="p-1.5 text-slate-400 hover:text-[#0d1f3c] hover:bg-slate-100 rounded-lg transition-colors"
-                  title="Refresh"
-                >
+                <button onClick={fetchStaff} title="Refresh"
+                  className="p-1.5 text-slate-400 hover:text-[#0d1f3c] hover:bg-slate-100 rounded-lg transition-colors">
                   <i className="fas fa-arrows-rotate text-xs"></i>
                 </button>
               </div>
@@ -336,10 +267,7 @@ export default function AdminPage() {
                       <thead>
                         <tr className="border-b border-slate-100">
                           {['Name', 'Email', 'Role', 'Actions'].map((h, i) => (
-                            <th
-                              key={h}
-                              className={`px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400 ${i === 3 ? 'text-right' : 'text-left'}`}
-                            >
+                            <th key={h} className={`px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400 ${i === 3 ? 'text-right' : 'text-left'}`}>
                               {h}
                             </th>
                           ))}
@@ -403,9 +331,7 @@ export default function AdminPage() {
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border capitalize ${
-                            s.role === 'admin'
-                              ? 'bg-sky-50 text-sky-700 border-sky-200'
-                              : 'bg-slate-100 text-slate-500 border-slate-200'
+                            s.role === 'admin' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-slate-100 text-slate-500 border-slate-200'
                           }`}>
                             {s.role}
                           </span>

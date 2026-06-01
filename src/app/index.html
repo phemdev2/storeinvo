@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LUXE — Premium Shopping Experience</title>
+<meta name="description" content="Discover premium products at unbeatable prices. Free shipping on orders over $50.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      fontFamily: { display: ['Space Grotesk','sans-serif'], body: ['DM Sans','sans-serif'] },
+      colors: {
+        coral: { 50:'#FFF5F2',100:'#FFE8E0',200:'#FFD0C0',300:'#FFB09A',400:'#FF8A6A',500:'#F06B48',600:'#E8553A',700:'#C4432B',800:'#9E3622',900:'#7A2B1B' },
+        mint: { 50:'#EDFCF7',100:'#D1F7EC',200:'#A7EEDA',300:'#6CE0C3',400:'#3DD0A8',500:'#2DD4A8',600:'#22B893',700:'#1A9478',800:'#167560',900:'#135F4E' },
+        gold: { 400:'#FCD34D',500:'#FBBF24',600:'#F59E0B' },
+        surface: { DEFAULT:'#FAFAF8', dark:'#0C0C10' },
+        card: { DEFAULT:'#FFFFFF', dark:'#16161E' },
+        elevated: { DEFAULT:'#F0F0EC', dark:'#1E1E28' },
+        border: { DEFAULT:'#E5E5E0', dark:'#2A2A35' },
+      }
+    }
+  }
+}
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);transition:background .3s,color .3s;overflow-x:hidden}
+:root{--bg:#FAFAF8;--text:#1A1A2E;--text-muted:#6B7280;--accent:#E8553A;--accent-hover:#D14E2D;--mint:#2DD4A8;--gold:#FBBF24;--card:#FFF;--border:#E5E5E0;--skeleton-base:#EFEFEB;--skeleton-shine:#F8F8F5;--overlay:rgba(0,0,0,0.4)}
+.dark{--bg:#0C0C10;--text:#F0F0F0;--text-muted:#9CA3AF;--card:#16161E;--border:#2A2A35;--skeleton-base:#1E1E28;--skeleton-shine:#2A2A35;--overlay:rgba(0,0,0,0.7)}
+.font-display{font-family:'Space Grotesk',sans-serif}
+.skeleton{background:linear-gradient(90deg,var(--skeleton-base) 25%,var(--skeleton-shine) 50%,var(--skeleton-base) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 rgba(232,85,58,.4)}50%{box-shadow:0 0 0 12px rgba(232,85,58,0)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes toast-in{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes toast-out{from{transform:translateX(0);opacity:1}to{transform:translateX(120%);opacity:0}}
+.anim-fade-up{animation:fadeInUp .5s ease both}
+.anim-fade{animation:fadeIn .4s ease both}
+.anim-scale{animation:scaleIn .35s ease both}
+.anim-slide-right{animation:slideRight .35s ease both}
+.anim-slide-up{animation:slideUp .35s ease both}
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .6s ease,transform .6s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.toast-enter{animation:toast-in .4s ease both}
+.toast-exit{animation:toast-out .3s ease both}
+.btn-primary{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:12px 28px;font-weight:600;font-size:15px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.btn-primary:hover{background:var(--accent-hover);transform:translateY(-1px);box-shadow:0 8px 24px rgba(232,85,58,.3)}
+.btn-primary:active{transform:scale(.97)}
+.btn-outline{background:transparent;color:var(--text);border:1.5px solid var(--border);border-radius:12px;padding:11px 28px;font-weight:500;font-size:15px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.glass{background:rgba(255,255,255,.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.dark .glass{background:rgba(22,22,30,.85)}
+.card-hover{transition:transform .25s ease,box-shadow .25s ease}
+.card-hover:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.08)}
+.dark .card-hover:hover{box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.line-clamp-1{overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+.line-clamp-2{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(232,85,58,.15)!important}
+.hide-scrollbar::-webkit-scrollbar{display:none}
+.hide-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+.hero-gradient{background:linear-gradient(135deg,#E8553A 0%,#F06B48 40%,#FFB09A 100%)}
+.dark .hero-gradient{background:linear-gradient(135deg,#C4432B 0%,#E8553A 40%,#F06B48 100%)}
+.mint-gradient{background:linear-gradient(135deg,#2DD4A8 0%,#22B893 100%)}
+@media(prefers-reduced-motion:reduce){*{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
+</style>
+</head>
+<body>
+<div id="app" class="min-h-screen" style="background:var(--bg);color:var(--text)">
+  <!-- Header -->
+  <header id="site-header" class="sticky top-0 z-40 glass border-b transition-all duration-300" style="border-color:var(--border)"></header>
+  <!-- Page Container -->
+  <main id="page-container" class="pb-20 md:pb-8 min-h-screen"></main>
+  <!-- Mobile Bottom Nav -->
+  <nav id="mobile-nav" class="fixed bottom-0 left-0 right-0 z-40 glass border-t md:hidden" style="border-color:var(--border)"></nav>
+  <!-- Search Overlay -->
+  <div id="search-overlay" class="fixed inset-0 z-50 hidden" style="background:var(--overlay)"></div>
+  <!-- Auth Modal -->
+  <div id="auth-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:var(--overlay)"></div>
+  <!-- Cart Drawer -->
+  <div id="cart-drawer" class="fixed inset-0 z-50 hidden"></div>
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-20 right-4 z-[60] flex flex-col gap-3 w-80 pointer-events-none"></div>
+</div>
+
+<script>
+// ===== UTILITY FUNCTIONS =====
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const fmt = n => '$' + Number(n).toFixed(2);
+const discount = (o, p) => Math.round((1 - p / o) * 100);
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+// ===== APP STATE =====
+const S = {
+  page: 'home', params: {}, dark: false, user: null,
+  cart: [], wishlist: [], searchQuery: '', authTab: 'login',
+  accountTab: 'profile', adminTab: 'overview',
+  checkoutStep: 0, filters: { category: '', sort: 'popular', minPrice: 0, maxPrice: 9999, inStock: false },
+  productPage: 1, productsPerPage: 12
+};
+
+// ===== CATEGORIES =====
+const CATEGORIES = [
+  { id:'electronics', name:'Electronics', icon:'smartphone', image:'https://picsum.photos/seed/catelec/300/300', count:234 },
+  { id:'fashion', name:'Fashion', icon:'shirt', image:'https://picsum.photos/seed/catfash/300/300', count:567 },
+  { id:'home', name:'Home & Living', icon:'lamp', image:'https://picsum.photos/seed/cathome/300/300', count:189 },
+  { id:'beauty', name:'Beauty', icon:'sparkles', image:'https://picsum.photos/seed/catbeau/300/300', count:312 },
+  { id:'sports', name:'Sports', icon:'dumbbell', image:'https://picsum.photos/seed/catsport/300/300', count:145 },
+  { id:'books', name:'Books', icon:'book-open', image:'https://picsum.photos/seed/catbooks/300/300', count:423 },
+];
+
+// ===== PRODUCTS =====
+const PRODUCTS = [
+  { id:1, name:'Wireless Noise-Cancelling Headphones', price:249.99, originalPrice:349.99, category:'electronics', rating:4.8, reviews:2341, badge:'Best Seller', image:'https://picsum.photos/seed/headph1/400/400', images:['https://picsum.photos/seed/headph1/600/600','https://picsum.photos/seed/headph2/600/600','https://picsum.photos/seed/headph3/600/600','https://picsum.photos/seed/headph4/600/600'], colors:['#1A1A2E','#E8E8E8','#8B4513'], sizes:[], stock:45, description:'Premium wireless headphones with industry-leading noise cancellation, 30-hour battery life, and ultra-comfortable ear cushions. Perfect for music lovers and professionals.', specs:['Bluetooth 5.3','30hr Battery','Active NC','USB-C Charging','Foldable Design'] },
+  { id:2, name:'Minimalist Leather Watch', price:189.00, originalPrice:259.00, category:'fashion', rating:4.6, reviews:876, badge:'New', image:'https://picsum.photos/seed/watch1/400/400', images:['https://picsum.photos/seed/watch1/600/600','https://picsum.photos/seed/watch2/600/600'], colors:['#1A1A2E','#8B6914','#C0C0C0'], sizes:[], stock:32, description:'Handcrafted minimalist watch with genuine leather strap and sapphire crystal glass. Japanese quartz movement for precise timekeeping.', specs:['Sapphire Crystal','Japanese Quartz','Genuine Leather','Water Resistant 50m'] },
+  { id:3, name:'Smart Home Speaker Pro', price:129.99, originalPrice:179.99, category:'electronics', rating:4.5, reviews:1567, badge:'', image:'https://picsum.photos/seed/speaker1/400/400', images:['https://picsum.photos/seed/speaker1/600/600','https://picsum.photos/seed/speaker2/600/600'], colors:['#E8E8E8','#1A1A2E'], sizes:[], stock:78, description:'360-degree room-filling sound with built-in voice assistant. Multi-room audio support and smart home integration.', specs:['360° Sound','Voice Assistant','WiFi 6','Multi-room','Touch Controls'] },
+  { id:4, name:'Premium Cotton T-Shirt', price:39.99, originalPrice:59.99, category:'fashion', rating:4.3, reviews:3421, badge:'Hot', image:'https://picsum.photos/seed/tshirt1/400/400', images:['https://picsum.photos/seed/tshirt1/600/600','https://picsum.photos/seed/tshirt2/600/600'], colors:['#FFFFFF','#1A1A2E','#2F4F4F','#8B0000'], sizes:['XS','S','M','L','XL','XXL'], stock:200, description:'Ultra-soft 100% organic cotton t-shirt with a relaxed fit. Pre-shrunk fabric with reinforced stitching for lasting comfort.', specs:['100% Organic Cotton','Pre-shrunk','Reinforced Stitching','Relaxed Fit'] },
+  { id:5, name:'Ceramic Table Lamp', price:89.99, originalPrice:119.99, category:'home', rating:4.7, reviews:543, badge:'', image:'https://picsum.photos/seed/lamp1/400/400', images:['https://picsum.photos/seed/lamp1/600/600','https://picsum.photos/seed/lamp2/600/600'], colors:['#F5F5DC','#D2B48C','#808080'], sizes:[], stock:25, description:'Elegant ceramic table lamp with linen shade. Perfect ambient lighting for living rooms and bedrooms. Dimmable LED bulb included.', specs:['Ceramic Base','Linen Shade','Dimmable LED','E26 Socket','Touch Control'] },
+  { id:6, name:'Running Shoes Ultra Boost', price:159.99, originalPrice:219.99, category:'sports', rating:4.9, reviews:4532, badge:'Top Rated', image:'https://picsum.photos/seed/shoes1/400/400', images:['https://picsum.photos/seed/shoes1/600/600','https://picsum.photos/seed/shoes2/600/600','https://picsum.photos/seed/shoes3/600/600'], colors:['#000000','#FFFFFF','#E8553A','#2DD4A8'], sizes:['7','8','9','10','11','12','13'], stock:120, description:'Professional running shoes with responsive cushioning and breathable mesh upper. Carbon fiber plate for energy return.', specs:['Carbon Fiber Plate','Responsive Foam','Breathable Mesh','Rubber Outsole','8.2oz Weight'] },
+  { id:7, name:'Vitamin C Brightening Serum', price:34.99, originalPrice:49.99, category:'beauty', rating:4.6, reviews:2189, badge:'', image:'https://picsum.photos/seed/serum1/400/400', images:['https://picsum.photos/seed/serum1/600/600','https://picsum.photos/seed/serum2/600/600'], colors:[], sizes:['30ml','50ml'], stock:150, description:'Professional-grade 20% Vitamin C serum with hyaluronic acid. Brightens skin, reduces dark spots, and boosts collagen production.', specs:['20% Vitamin C','Hyaluronic Acid','Vegan','Cruelty Free','Paraben Free'] },
+  { id:8, name:'Mechanical Keyboard RGB', price:109.99, originalPrice:149.99, category:'electronics', rating:4.7, reviews:1876, badge:'Popular', image:'https://picsum.photos/seed/keyboard1/400/400', images:['https://picsum.photos/seed/keyboard1/600/600','https://picsum.photos/seed/keyboard2/600/600'], colors:['#1A1A2E','#F5F5F5'], sizes:[], stock:60, description:'Hot-swappable mechanical keyboard with per-key RGB lighting. Gasket mount design for a premium typing feel.', specs:['Hot-Swappable','Per-Key RGB','Gasket Mount','PBT Keycaps','USB-C'] },
+  { id:9, name:'Linen Throw Blanket', price:59.99, originalPrice:79.99, category:'home', rating:4.4, reviews:432, badge:'', image:'https://picsum.photos/seed/blanket1/400/400', images:['https://picsum.photos/seed/blanket1/600/600','https://picsum.photos/seed/blanket2/600/600'], colors:['#F5F5DC','#808080','#2F4F4F','#DEB887'], sizes:[], stock:40, description:'Luxuriously soft 100% French linen throw blanket. Pre-washed for ultimate softness. Gets better with every wash.', specs:['100% French Linen','Pre-washed','140x200cm','Machine Washable','OEKO-TEX Certified'] },
+  { id:10, name:'Designer Sunglasses', price:219.00, originalPrice:299.00, category:'fashion', rating:4.5, reviews:654, badge:'Trending', image:'https://picsum.photos/seed/sunglass1/400/400', images:['https://picsum.photos/seed/sunglass1/600/600','https://picsum.photos/seed/sunglass2/600/600'], colors:['#1A1A2E','#8B6914','#8B0000'], sizes:[], stock:18, description:'Italian-crafted sunglasses with polarized lenses and titanium frames. UV400 protection with anti-reflective coating.', specs:['Polarized Lenses','UV400 Protection','Titanium Frame','Italian Crafted','Anti-Reflective'] },
+  { id:11, name:'Yoga Mat Premium', price:69.99, originalPrice:89.99, category:'sports', rating:4.8, reviews:2345, badge:'', image:'https://picsum.photos/seed/yoga1/400/400', images:['https://picsum.photos/seed/yoga1/600/600','https://picsum.photos/seed/yoga2/600/600'], colors:['#2DD4A8','#E8553A','#1A1A2E','#FBBF24'], sizes:[], stock:90, description:'Extra-thick 6mm natural rubber yoga mat with alignment lines. Non-slip surface for safe practice. Eco-friendly materials.', specs:['6mm Thick','Natural Rubber','Alignment Lines','Non-Slip','Eco-Friendly'] },
+  { id:12, name:'Bestselling Novel Collection', price:24.99, originalPrice:39.99, category:'books', rating:4.7, reviews:5678, badge:'Best Seller', image:'https://picsum.photos/seed/book1/400/400', images:['https://picsum.photos/seed/book1/600/600','https://picsum.photos/seed/book2/600/600'], colors:[], sizes:[], stock:300, description:'Curated collection of 3 award-winning novels. Hardbound editions with premium paper and foil-stamped covers.', specs:['3 Novels','Hardbound','Foil Stamped','Premium Paper','Gift Box'] },
+  { id:13, name:'Portable Power Bank 20000mAh', price:49.99, originalPrice:69.99, category:'electronics', rating:4.4, reviews:3456, badge:'', image:'https://picsum.photos/seed/power1/400/400', images:['https://picsum.photos/seed/power1/600/600','https://picsum.photos/seed/power2/600/600'], colors:['#1A1A2E','#F5F5F5'], sizes:[], stock:200, description:'Slim 20000mAh power bank with 65W fast charging. Charge 3 devices simultaneously with intelligent power distribution.', specs:['20000mAh','65W PD','3 Outputs','LED Display','Airline Safe'] },
+  { id:14, name:'Hydrating Face Moisturizer', price:29.99, originalPrice:44.99, category:'beauty', rating:4.5, reviews:1234, badge:'', image:'https://picsum.photos/seed/moist1/400/400', images:['https://picsum.photos/seed/moist1/600/600','https://picsum.photos/seed/moist2/600/600'], colors:[], sizes:['50ml','100ml'], stock:180, description:'Lightweight gel-cream moisturizer with ceramides and niacinamide. 72-hour hydration without greasiness.', specs:['Ceramides','Niacinamide','72hr Hydration','Non-comedogenic','Fragrance Free'] },
+  { id:15, name:'Canvas Tote Bag', price:45.00, originalPrice:65.00, category:'fashion', rating:4.3, reviews:876, badge:'Eco', image:'https://picsum.photos/seed/tote1/400/400', images:['https://picsum.photos/seed/tote1/600/600','https://picsum.photos/seed/tote2/600/600'], colors:['#F5F5DC','#1A1A2E','#2F4F4F'], sizes:[], stock:55, description:'Heavy-duty organic cotton canvas tote with leather handles. Spacious interior with zip pocket. Perfect for everyday use.', specs:['Organic Cotton','Leather Handles','Zip Pocket','15" Laptop Fit','Reinforced Bottom'] },
+  { id:16, name:'Smart Fitness Tracker', price:79.99, originalPrice:129.99, category:'electronics', rating:4.6, reviews:5678, badge:'Sale', image:'https://picsum.photos/seed/fittrack1/400/400', images:['https://picsum.photos/seed/fittrack1/600/600','https://picsum.photos/seed/fittrack2/600/600'], colors:['#1A1A2E','#2DD4A8','#E8553A'], sizes:[], stock:140, description:'Advanced fitness tracker with AMOLED display, SpO2 monitoring, GPS, and 14-day battery life. Water resistant to 50m.', specs:['AMOLED Display','SpO2 Monitor','Built-in GPS','14-Day Battery','50m Water Resistant'] },
+  { id:17, name:'Scented Candle Set', price:39.99, originalPrice:54.99, category:'home', rating:4.8, reviews:2345, badge:'Gift Pick', image:'https://picsum.photos/seed/candle1/400/400', images:['https://picsum.photos/seed/candle1/600/600','https://picsum.photos/seed/candle2/600/600'], colors:[], sizes:[], stock:70, description:'Set of 3 hand-poured soy wax candles with essential oil fragrances. 45-hour burn time each. Beautiful gift box included.', specs:['Soy Wax','Essential Oils','45hr Burn','3-Piece Set','Gift Box'] },
+  { id:18, name:'Resistance Bands Set', price:24.99, originalPrice:39.99, category:'sports', rating:4.5, reviews:3456, badge:'', image:'https://picsum.photos/seed/bands1/400/400', images:['https://picsum.photos/seed/bands1/600/600','https://picsum.photos/seed/bands2/600/600'], colors:[], sizes:[], stock:250, description:'5-piece resistance bands set with handles, door anchor, and ankle straps. Premium latex with 5 resistance levels.', specs:['5 Bands','Handles Included','Door Anchor','Ankle Straps','Carry Bag'] },
+];
+
+// ===== REVIEWS DATA =====
+const REVIEWS = [
+  { user:'Sarah M.', avatar:'https://i.pravatar.cc/80?img=1', rating:5, date:'2 days ago', text:'Absolutely love this product! Exceeded my expectations in every way. The quality is outstanding and it arrived faster than expected.' },
+  { user:'James K.', avatar:'https://i.pravatar.cc/80?img=3', rating:4, date:'1 week ago', text:'Great value for money. Works exactly as described. Minor packaging issue but the product itself is flawless.' },
+  { user:'Emily R.', avatar:'https://i.pravatar.cc/80?img=5', rating:5, date:'2 weeks ago', text:'This is my third purchase from LUXE and they never disappoint. Premium quality and excellent customer service.' },
+  { user:'Michael T.', avatar:'https://i.pravatar.cc/80?img=8', rating:4, date:'3 weeks ago', text:'Very good product. Would definitely recommend to friends. The shipping was quick and the item was well-protected.' },
+];
+
+// ===== ORDERS DATA (for account) =====
+const SAMPLE_ORDERS = [
+  { id:'LX-28491', date:'Dec 15, 2024', status:'Delivered', total:289.98, items:[{name:'Wireless Noise-Cancelling Headphones',qty:1,price:249.99,img:'https://picsum.photos/seed/headph1/80/80'},{name:'Vitamin C Serum',qty:1,price:34.99,img:'https://picsum.photos/seed/serum1/80/80'}] },
+  { id:'LX-28310', date:'Dec 8, 2024', status:'Shipped', total:159.99, items:[{name:'Running Shoes Ultra Boost',qty:1,price:159.99,img:'https://picsum.photos/seed/shoes1/80/80'}] },
+  { id:'LX-28045', date:'Nov 28, 2024', status:'Delivered', total:149.98, items:[{name:'Mechanical Keyboard RGB',qty:1,price:109.99,img:'https://picsum.photos/seed/keyboard1/80/80'},{name:'Scented Candle Set',qty:1,price:39.99,img:'https://picsum.photos/seed/candle1/80/80'}] },
+];
+
+// ===== TOAST SYSTEM =====
+function toast(msg, type='success') {
+  const c = $('#toast-container');
+  const colors = { success:'border-l-4 border-green-500', error:'border-l-4 border-red-500', info:'border-l-4 border-blue-500', warning:'border-l-4 border-yellow-500' };
+  const icons = { success:'check-circle', error:'x-circle', info:'info', warning:'alert-triangle' };
+  const el = document.createElement('div');
+  el.className = `toast-enter pointer-events-auto ${colors[type]} rounded-xl p-4 shadow-lg flex items-center gap-3`;
+  el.style.cssText = `background:var(--card);border:1px solid var(--border)`;
+  el.innerHTML = `<i data-lucide="${icons[type]}" class="w-5 h-5 flex-shrink-0" style="color:var(--accent)"></i><span class="text-sm font-medium" style="color:var(--text)">${msg}</span>`;
+  c.appendChild(el);
+  lucide.createIcons({nodes:[el]});
+  setTimeout(() => { el.classList.replace('toast-enter','toast-exit'); setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+// ===== STAR RATING HTML =====
+function stars(r, size='w-4 h-4') {
+  let h = '';
+  for (let i = 1; i <= 5; i++) {
+    if (i <= Math.floor(r)) h += `<i data-lucide="star" class="${size} fill-gold-500 text-gold-500"></i>`;
+    else if (i - r < 1) h += `<i data-lucide="star" class="${size} fill-gold-500 text-gold-500 opacity-60"></i>`;
+    else h += `<i data-lucide="star" class="${size} text-gray-300 dark:text-gray-600"></i>`;
+  }
+  return h;
+}
+
+// ===== PRODUCT CARD COMPONENT =====
+function productCard(p, delay=0) {
+  const inWish = S.wishlist.includes(p.id);
+  const disc = p.originalPrice > p.price ? discount(p.originalPrice, p.price) : 0;
+  return `<div class="group anim-fade-up" style="animation-delay:${delay}ms">
+    <div class="relative rounded-2xl overflow-hidden card-hover" style="background:var(--card);border:1px solid var(--border)">
+      <div class="relative aspect-square overflow-hidden bg-elevated dark:bg-elevated-dark">
+        <img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy">
+        ${p.badge ? `<span class="absolute top-3 left-3 text-xs font-bold px-2.5 py-1 rounded-full ${p.badge==='Sale'||p.badge==='Hot'?'bg-coral-600 text-white':p.badge==='New'?'bg-mint-600 text-white':'bg-gold-500 text-gray-900'}">${p.badge}</span>` : ''}
+        ${disc ? `<span class="absolute top-3 right-3 text-xs font-bold px-2 py-1 rounded-full bg-red-500 text-white">-${disc}%</span>` : ''}
+        <button onclick="toggleWishlist(${p.id})" class="absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0" style="background:var(--card);box-shadow:0 2px 8px rgba(0,0,0,.1)">
+          <i data-lucide="heart" class="w-4 h-4 ${inWish?'fill-coral-600 text-coral-600':''}" style="${inWish?'':'color:var(--text-muted)'}"></i>
+        </button>
+      </div>
+      <div class="p-4">
+        <p class="text-xs font-medium uppercase tracking-wider mb-1.5" style="color:var(--text-muted)">${CATEGORIES.find(c=>c.id===p.category)?.name||p.category}</p>
+        <h3 class="font-display font-semibold text-sm line-clamp-2 mb-2 cursor-pointer hover:text-coral-600 transition-colors" style="color:var(--text)" onclick="navigate('product',{id:${p.id}})">${p.name}</h3>
+        <div class="flex items-center gap-1.5 mb-2">
+          ${stars(p.rating,'w-3 h-3')}
+          <span class="text-xs" style="color:var(--text-muted)">(${p.reviews.toLocaleString()})</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="flex items-baseline gap-2">
+            <span class="font-display font-bold text-lg" style="color:var(--text)">${fmt(p.price)}</span>
+            ${p.originalPrice > p.price ? `<span class="text-xs line-through" style="color:var(--text-muted)">${fmt(p.originalPrice)}</span>` : ''}
+          </div>
+          <button onclick="quickAdd(${p.id})" class="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:scale-110" style="background:var(--accent);color:#fff">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ===== CART LOGIC =====
+function addToCart(id, color=null, size=null, qty=1) {
+  const p = PRODUCTS.find(x=>x.id===id);
+  if (!p) return;
+  const key = `${id}-${color||''}-${size||''}`;
+  const existing = S.cart.find(x=>x.key===key);
+  if (existing) { existing.qty += qty; }
+  else { S.cart.push({ key, id, color, size, qty, price: p.price }); }
+  saveCart();
+  updateCartBadge();
+  toast(`${p.name} added to cart`);
+}
+function quickAdd(id) { addToCart(id); }
+function removeFromCart(key) {
+  S.cart = S.cart.filter(x=>x.key!==key);
+  saveCart(); updateCartBadge();
+  if (S.page==='cart') renderPage();
+  toast('Item removed from cart','info');
+}
+function updateQty(key, qty) {
+  const item = S.cart.find(x=>x.key===key);
+  if (item) { item.qty = Math.max(1, qty); saveCart(); if(S.page==='cart') renderPage(); }
+}
+function getCartSubtotal() { return S.cart.reduce((s,i)=>s+i.price*i.qty, 0); }
+function getCartCount() { return S.cart.reduce((s,i)=>s+i.qty, 0); }
+function saveCart() { localStorage.setItem('luxe_cart', JSON.stringify(S.cart)); }
+function loadCart() { try { S.cart = JSON.parse(localStorage.getItem('luxe_cart')) || []; } catch(e) { S.cart = []; } }
+function updateCartBadge() {
+  const c = getCartCount();
+  $$('#cart-badge').forEach(el => { el.textContent = c; el.style.display = c > 0 ? 'flex' : 'none'; });
+}
+
+// ===== WISHLIST LOGIC =====
+function toggleWishlist(id) {
+  const i = S.wishlist.indexOf(id);
+  if (i > -1) { S.wishlist.splice(i, 1); toast('Removed from wishlist','info'); }
+  else { S.wishlist.push(id); toast('Added to wishlist'); }
+  localStorage.setItem('luxe_wish', JSON.stringify(S.wishlist));
+  renderPage();
+}
+function loadWishlist() { try { S.wishlist = JSON.parse(localStorage.getItem('luxe_wish')) || []; } catch(e) { S.wishlist = []; } }
+
+// ===== DARK MODE =====
+function toggleDark() {
+  S.dark = !S.dark;
+  document.documentElement.classList.toggle('dark', S.dark);
+  localStorage.setItem('luxe_dark', S.dark);
+  renderHeader(); renderMobileNav();
+}
+function loadDark() {
+  S.dark = localStorage.getItem('luxe_dark') === 'true' || (!localStorage.getItem('luxe_dark') && window.matchMedia('(prefers-color-scheme:dark)').matches);
+  document.documentElement.classList.toggle('dark', S.dark);
+}
+
+// ===== HEADER RENDERER =====
+function renderHeader() {
+  const cc = getCartCount();
+  $('#site-header').innerHTML = `
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="flex items-center justify-between h-14 md:h-16">
+      <div class="flex items-center gap-3">
+        <button onclick="navigate('home')" class="font-display font-bold text-xl tracking-tight" style="color:var(--accent)">LUXE</button>
+      </div>
+      <nav class="hidden md:flex items-center gap-1">
+        <button onclick="navigate('home')" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-elevated dark:hover:bg-elevated-dark ${S.page==='home'?'text-coral-600':'hover:text-coral-600'}" style="color:${S.page==='home'?'var(--accent)':'var(--text)'}">Home</button>
+        <button onclick="navigate('products')" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-elevated dark:hover:bg-elevated-dark ${S.page==='products'?'text-coral-600':''}" style="color:${S.page==='products'?'var(--accent)':'var(--text)'}">Shop</button>
+        <div class="relative group">
+          <button class="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-elevated dark:hover:bg-elevated-dark flex items-center gap-1" style="color:var(--text)">Categories <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i></button>
+          <div class="absolute top-full left-0 mt-2 w-56 rounded-xl shadow-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50" style="background:var(--card);border:1px solid var(--border)">
+            ${CATEGORIES.map(c=>`<button onclick="navigate('products',{category:'${c.id}'})" class="w-full text-left px-4 py-2.5 text-sm hover:bg-elevated dark:hover:bg-elevated-dark transition-colors flex items-center gap-3" style="color:var(--text)"><i data-lucide="${c.icon}" class="w-4 h-4" style="color:var(--text-muted)"></i>${c.name}</button>`).join('')}
+          </div>
+        </div>
+        <button onclick="navigate('products',{category:'electronics',sort:'popular'})" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-elevated dark:hover:bg-elevated-dark" style="color:var(--text)">Deals</button>
+      </nav>
+      <div class="flex items-center gap-2">
+        <button onclick="openSearch()" class="w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-elevated dark:hover:bg-elevated-dark" aria-label="Search"><i data-lucide="search" class="w-[18px] h-[18px]" style="color:var(--text)"></i></button>
+        <button onclick="toggleDark()" class="hidden md:flex w-9 h-9 rounded-lg items-center justify-center transition-colors hover:bg-elevated dark:hover:bg-elevated-dark" aria-label="Toggle theme"><i data-lucide="${S.dark?'sun':'moon'}" class="w-[18px] h-[18px]" style="color:var(--text)"></i></button>
+        <button onclick="openCartDrawer()" class="relative w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-elevated dark:hover:bg-elevated-dark" aria-label="Cart">
+          <i data-lucide="shopping-bag" class="w-[18px] h-[18px]" style="color:var(--text)"></i>
+          <span id="cart-badge" class="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 rounded-full text-[10px] font-bold flex items-center justify-center text-white" style="background:var(--accent);display:${cc>0?'flex':'none'};min-width:18px;height:18px">${cc}</span>
+        </button>
+        <button onclick="${S.user?"navigate('account')":"openAuth('login')"}" class="hidden md:flex w-9 h-9 rounded-lg items-center justify-center transition-colors hover:bg-elevated dark:hover:bg-elevated-dark" aria-label="Account"><i data-lucide="${S.user?'user-check':'user'}" class="w-[18px] h-[18px]" style="color:var(--text)"></i></button>
+      </div>
+    </div>
+  </div>`;
+  lucide.createIcons({nodes:[$('#site-header')]});
+}
+
+// ===== MOBILE NAV RENDERER =====
+function renderMobileNav() {
+  const cc = getCartCount();
+  $('#mobile-nav').innerHTML = `
+  <div class="flex items-center justify-around h-16 px-2 max-w-lg mx-auto">
+    <button onclick="navigate('home')" class="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-colors ${S.page==='home'?'text-coral-600':'hover:text-coral-600'}" style="color:${S.page==='home'?'var(--accent)':'var(--text-muted)'}"><i data-lucide="home" class="w-5 h-5"></i><span class="text-[10px] font-medium">Home</span></button>
+    <button onclick="navigate('products')" class="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-colors ${S.page==='products'?'text-coral-600':''}" style="color:${S.page==='products'?'var(--accent)':'var(--text-muted)'}"><i data-lucide="grid-2x2" class="w-5 h-5"></i><span class="text-[10px] font-medium">Shop</span></button>
+    <button onclick="openSearch()" class="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-colors" style="color:var(--text-muted)"><div class="w-10 h-10 -mt-4 rounded-full flex items-center justify-center shadow-lg" style="background:var(--accent)"><i data-lucide="search" class="w-5 h-5 text-white"></i></div><span class="text-[10px] font-medium">Search</span></button>
+    <button onclick="openCartDrawer()" class="relative flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-colors" style="color:var(--text-muted)"><i data-lucide="shopping-bag" class="w-5 h-5"></i><span id="cart-badge" class="absolute top-0 right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-white" style="background:var(--accent);display:${cc>0?'flex':'none'}">${cc}</span><span class="text-[10px] font-medium">Cart</span></button>
+    <button onclick="${S.user?"navigate('account')":"openAuth('login')"}" class="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-colors ${S.page==='account'?'text-coral-600':''}" style="color:${S.page==='account'?'var(--accent)':'var(--text-muted)'}"><i data-lucide="user" class="w-5 h-5"></i><span class="text-[10px] font-medium">${S.user?'Account':'Login'}</span></button>
+  </div>`;
+  lucide.createIcons({nodes:[$('#mobile-nav')]});
+}
+
+// ===== SEARCH MODAL =====
+function openSearch() {
+  const o = $('#search-overlay');
+  o.classList.remove('hidden');
+  o.innerHTML = `<div class="absolute inset-0" onclick="closeSearch()"></div>
+  <div class="absolute top-0 left-0 right-0 anim-slide-up" style="background:var(--card);border-bottom:1px solid var(--border)">
+    <div class="max-w-2xl mx-auto p-4">
+      <div class="flex items-center gap-3 mb-4">
+        <i data-lucide="search" class="w-5 h-5 flex-shrink-0" style="color:var(--text-muted)"></i>
+        <input id="search-input" type="text" placeholder="Search products, categories..." class="flex-1 bg-transparent text-lg font-medium border-none" style="color:var(--text);outline:none" oninput="handleSearch(this.value)" autofocus>
+        <button onclick="closeSearch()" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-elevated dark:hover:bg-elevated-dark"><i data-lucide="x" class="w-5 h-5" style="color:var(--text-muted)"></i></button>
+      </div>
+      <div id="search-results" class="max-h-[60vh] overflow-y-auto hide-scrollbar">
+        <div class="mb-4"><p class="text-xs font-semibold uppercase tracking-wider mb-3" style="color:var(--text-muted)">Popular Searches</p>
+        <div class="flex flex-wrap gap-2">${['Headphones','Running Shoes','Skincare','Candles','Keyboard','Yoga Mat'].map(t=>`<button onclick="document.getElementById('search-input').value='${t}';handleSearch('${t}')" class="px-3 py-1.5 rounded-full text-sm transition-colors" style="background:var(--bg);color:var(--text);border:1px solid var(--border)">${t}</button>`).join('')}</div></div>
+      </div>
+    </div>
+  </div>`;
+  lucide.createIcons({nodes:[o]});
+  setTimeout(()=>$('#search-input')?.focus(), 100);
+}
+function closeSearch() { $('#search-overlay').classList.add('hidden'); }
+function handleSearch(q) {
+  const r = $('#search-results');
+  if (!q.trim()) { openSearch(); return; }
+  const results = PRODUCTS.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || p.category.includes(q.toLowerCase()));
+  if (!results.length) { r.innerHTML = `<div class="text-center py-12"><i data-lucide="search-x" class="w-12 h-12 mx-auto mb-3" style="color:var(--text-muted)"></i><p class="font-medium" style="color:var(--text)">No results found</p><p class="text-sm mt-1" style="color:var(--text-muted)">Try a different search term</p></div>`; lucide.createIcons({nodes:[r]}); return; }
+  r.innerHTML = results.map(p => `<button onclick="closeSearch();navigate('product',{id:${p.id}})" class="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-elevated dark:hover:bg-elevated-dark transition-colors text-left">
+    <img src="${p.image}" class="w-14 h-14 rounded-lg object-cover flex-shrink-0">
+    <div class="flex-1 min-w-0"><p class="text-sm font-medium line-clamp-1" style="color:var(--text)">${p.name}</p><p class="text-xs" style="color:var(--text-muted)">${CATEGORIES.find(c=>c.id===p.category)?.name}</p></div>
+    <span class="font-display font-semibold text-sm" style="color:var(--accent)">${fmt(p.price)}</span>
+  </button>`).join('');
+}
+
+// ===== AUTH MODAL =====
+function openAuth(tab='login') {
+  S.authTab = tab;
+  const m = $('#auth-modal');
+  m.classList.remove('hidden');
+  renderAuthContent();
+}
+function closeAuth() { $('#auth-modal').classList.add('hidden'); }
+function renderAuthContent() {
+  const m = $('#auth-modal');
+  const isLogin = S.authTab === 'login';
+  m.innerHTML = `<div class="absolute inset-0" onclick="closeAuth()"></div>
+  <div class="relative w-full max-w-md rounded-2xl p-6 md:p-8 anim-scale" style="background:var(--card);border:1px solid var(--border)">
+    <button onclick="closeAuth()" class="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center hover:bg-elevated dark:hover:bg-elevated-dark"><i data-lucide="x" class="w-4 h-4" style="color:var(--text-muted)"></i></button>
+    <div class="text-center mb-6">
+      <h2 class="font-display font-bold text-2xl mb-1" style="color:var(--text)">${isLogin?'Welcome Back':'Create Account'}</h2>
+      <p class="text-sm" style="color:var(--text-muted)">${isLogin?'Sign in to your LUXE account':'Join LUXE for exclusive deals'}</p>
+    </div>
+    <button class="w-full flex items-center justify-center gap-3 py-3 rounded-xl text-sm font-medium transition-colors mb-6" style="background:var(--bg);color:var(--text);border:1px solid var(--border)" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Continue with Google
+    </button>
+    <div class="flex items-center gap-3 mb-6"><div class="flex-1 h-px" style="background:var(--border)"></div><span class="text-xs" style="color:var(--text-muted)">or</span><div class="flex-1 h-px" style="background:var(--border)"></div></div>
+    <form onsubmit="event.preventDefault();${isLogin?'handleLogin()':'handleRegister()'}" class="space-y-4">
+      ${!isLogin?`<div><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">Full Name</label><input type="text" id="auth-name" placeholder="John Doe" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)" required></div>`:''}
+      <div><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">Email</label><input type="email" id="auth-email" placeholder="you@example.com" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)" required></div>
+      <div><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">Password</label><input type="password" id="auth-pass" placeholder="Enter password" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)" required></div>
+      ${isLogin?`<div class="flex items-center justify-between"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="w-4 h-4 rounded accent-coral-600"><span class="text-sm" style="color:var(--text-muted)">Remember me</span></label><button type="button" onclick="openAuth('forgot')" class="text-sm font-medium" style="color:var(--accent)">Forgot password?</button></div>`:''}
+      <button type="submit" class="btn-primary w-full">${isLogin?'Sign In':'Create Account'}</button>
+    </form>
+    <p class="text-center text-sm mt-6" style="color:var(--text-muted)">${isLogin?'Don\'t have an account?':'Already have an account?'} <button onclick="openAuth('${isLogin?'register':'login'}')" class="font-semibold" style="color:var(--accent)">${isLogin?'Sign Up':'Sign In'}</button></p>
+  </div>`;
+  lucide.createIcons({nodes:[m]});
+}
+function handleLogin() {
+  const email = $('#auth-email')?.value;
+  if (!email) return;
+  S.user = { name: email.split('@')[0], email, avatar: `https://i.pravatar.cc/100?img=${Math.floor(Math.random()*70)}` };
+  closeAuth(); toast('Welcome back, ' + S.user.name + '!');
+  renderHeader(); renderMobileNav();
+}
+function handleRegister() {
+  const name = $('#auth-name')?.value, email = $('#auth-email')?.value;
+  if (!name || !email) return;
+  S.user = { name, email, avatar: `https://i.pravatar.cc/100?img=${Math.floor(Math.random()*70)}` };
+  closeAuth(); toast('Account created successfully!');
+  renderHeader(); renderMobileNav();
+}
+
+// ===== CART DRAWER =====
+function openCartDrawer() {
+  const d = $('#cart-drawer');
+  d.classList.remove('hidden');
+  renderCartDrawer();
+}
+function closeCartDrawer() { $('#cart-drawer').classList.add('hidden'); }
+function renderCartDrawer() {
+  const d = $('#cart-drawer');
+  const sub = getCartSubtotal();
+  d.innerHTML = `<div class="absolute inset-0" style="background:var(--overlay)" onclick="closeCartDrawer()"></div>
+  <div class="absolute right-0 top-0 bottom-0 w-full max-w-md flex flex-col anim-slide-right" style="background:var(--card)">
+    <div class="flex items-center justify-between p-4 border-b" style="border-color:var(--border)">
+      <h2 class="font-display font-bold text-lg" style="color:var(--text)">Your Cart (${getCartCount()})</h2>
+      <button onclick="closeCartDrawer()" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-elevated dark:hover:bg-elevated-dark"><i data-lucide="x" class="w-5 h-5" style="color:var(--text-muted)"></i></button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+      ${S.cart.length === 0 ? `<div class="text-center py-16"><i data-lucide="shopping-bag" class="w-16 h-16 mx-auto mb-4" style="color:var(--border)"></i><p class="font-display font-semibold text-lg mb-1" style="color:var(--text)">Cart is empty</p><p class="text-sm mb-6" style="color:var(--text-muted)">Add items to get started</p><button onclick="closeCartDrawer();navigate('products')" class="btn-primary">Start Shopping</button></div>` :
+      S.cart.map(item => { const p = PRODUCTS.find(x=>x.id===item.id); if(!p) return ''; return `<div class="flex gap-3 p-3 rounded-xl" style="background:var(--bg)">
+        <img src="${p.image}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+        <div class="flex-1 min-w-0">
+          <h4 class="text-sm font-medium line-clamp-1" style="color:var(--text)">${p.name}</h4>
+          ${item.color ? `<div class="flex items-center gap-1.5 mt-1"><span class="w-3.5 h-3.5 rounded-full border" style="background:${item.color};border-color:var(--border)"></span><span class="text-xs" style="color:var(--text-muted)">Selected</span></div>` : ''}
+          ${item.size ? `<p class="text-xs mt-1" style="color:var(--text-muted)">Size: ${item.size}</p>` : ''}
+          <div class="flex items-center justify-between mt-2">
+            <div class="flex items-center gap-2" style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+              <button onclick="updateQty('${item.key}',${item.qty-1})" class="w-7 h-7 flex items-center justify-center hover:bg-elevated dark:hover:bg-elevated-dark"><i data-lucide="minus" class="w-3 h-3" style="color:var(--text-muted)"></i></button>
+              <span class="text-sm font-medium w-6 text-center" style="color:var(--text)">${item.qty}</span>
+              <button onclick="updateQty('${item.key}',${item.qty+1})" class="w-7 h-7 flex items-center justify-center hover:bg-elevated dark:hover:bg-elevated-dark"><i data-lucide="plus" class="w-3 h-3" style="color:var(--text-muted)"></i></button>
+            </div>
+            <span class="font-display font-semibold text-sm" style="color:var(--text)">${fmt(item.price * item.qty)}</span>
+          </div>
+        </div>
+        <button onclick="removeFromCart('${item.key}')" class="self-start w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20"><i data-lucide="trash-2" class="w-3.5 h-3.5 text-red-500"></i></button>
+      </div>`; }).join('')}
+    </div>
+    ${S.cart.length ? `<div class="p-4 border-t space-y-3" style="border-color:var(--border)">
+      <div class="flex items-center justify-between"><span class="text-sm" style="color:var(--text-muted)">Subtotal</span><span class="font-display font-semibold" style="color:var(--text)">${fmt(sub)}</span></div>
+      <div class="flex items-center justify-between"><span class="text-sm" style="color:var(--text-muted)">Shipping</span><span class="text-sm font-medium" style="color:var(--mint)">${sub>=50?'Free':'$4.99'}</span></div>
+      <div class="h-px" style="background:var(--border)"></div>
+      <div class="flex items-center justify-between"><span class="font-display font-semibold" style="color:var(--text)">Total</span><span class="font-display font-bold text-lg" style="color:var(--text)">${fmt(sub + (sub>=50?0:4.99))}</span></div>
+      <button onclick="closeCartDrawer();navigate('checkout')" class="btn-primary w-full flex items-center justify-center gap-2">Checkout <i data-lucide="arrow-right" class="w-4 h-4"></i></button>
+      <button onclick="closeCartDrawer();navigate('cart')" class="w-full text-center text-sm font-medium py-2" style="color:var(--accent)">View Full Cart</button>
+    </div>` : ''}
+  </div>`;
+  lucide.createIcons({nodes:[d]});
+}
+
+// ===== NAVIGATION =====
+function navigate(page, params={}) {
+  S.page = page; S.params = params;
+  renderPage(); renderHeader(); renderMobileNav();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ===== MAIN RENDER =====
+function renderPage() {
+  const c = $('#page-container');
+  switch(S.page) {
+    case 'home': c.innerHTML = renderHome(); break;
+    case 'products': c.innerHTML = renderProducts(); break;
+    case 'product': c.innerHTML = renderProduct(); break;
+    case 'cart': c.innerHTML = renderCartPage(); break;
+    case 'checkout': c.innerHTML = renderCheckout(); break;
+    case 'account': c.innerHTML = renderAccount(); break;
+    case 'admin': c.innerHTML = renderAdmin(); break;
+    default: c.innerHTML = renderHome();
+  }
+  lucide.createIcons();
+  initReveal();
+  if (S.page === 'admin' && S.adminTab === 'overview') initCharts();
+}
+
+// ===== HOME PAGE =====
+function renderHome() {
+  const flashProducts = PRODUCTS.filter(p=>p.originalPrice > p.price).slice(0,4);
+  const trending = [...PRODUCTS].sort((a,b)=>b.reviews-a.reviews).slice(0,8);
+  return `
+  <!-- Hero -->
+  <section class="relative overflow-hidden">
+    <div class="hero-gradient absolute inset-0 opacity-10"></div>
+    <div class="absolute top-20 right-10 w-72 h-72 rounded-full opacity-20 blur-3xl" style="background:var(--accent)"></div>
+    <div class="absolute bottom-10 left-10 w-56 h-56 rounded-full opacity-15 blur-3xl" style="background:var(--mint)"></div>
+    <div class="max-w-7xl mx-auto px-4 py-12 md:py-20 lg:py-24 relative">
+      <div class="grid lg:grid-cols-2 gap-10 items-center">
+        <div class="anim-fade-up">
+          <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-6" style="background:rgba(232,85,58,.1);color:var(--accent)">
+            <i data-lucide="zap" class="w-4 h-4"></i> New Season Collection
+          </span>
+          <h1 class="font-display font-bold text-4xl md:text-5xl lg:text-6xl leading-[1.1] mb-6" style="color:var(--text)">
+            Discover Premium<br>
+            <span style="color:var(--accent)">Products</span> You'll Love
+          </h1>
+          <p class="text-lg mb-8 max-w-lg" style="color:var(--text-muted)">Curated selection of the finest products from around the world. Free shipping on orders over $50.</p>
+          <div class="flex flex-wrap gap-3">
+            <button onclick="navigate('products')" class="btn-primary text-base px-8 py-3.5">Shop Now</button>
+            <button onclick="navigate('products',{category:'electronics'})" class="btn-outline text-base px-8 py-3.5">Explore Deals</button>
+          </div>
+          <div class="flex items-center gap-8 mt-10">
+            <div><span class="font-display font-bold text-2xl" style="color:var(--text)">50K+</span><p class="text-xs" style="color:var(--text-muted)">Happy Customers</p></div>
+            <div class="w-px h-10" style="background:var(--border)"></div>
+            <div><span class="font-display font-bold text-2xl" style="color:var(--text)">4.9</span><p class="text-xs" style="color:var(--text-muted)">Average Rating</p></div>
+            <div class="w-px h-10" style="background:var(--border)"></div>
+            <div><span class="font-display font-bold text-2xl" style="color:var(--text)">2K+</span><p class="text-xs" style="color:var(--text-muted)">Products</p></div>
+          </div>
+        </div>
+        <div class="relative anim-fade-up" style="animation-delay:200ms">
+          <div class="relative rounded-3xl overflow-hidden aspect-square max-w-md mx-auto" style="box-shadow:0 40px 80px rgba(232,85,58,.15)">
+            <img src="https://picsum.photos/seed/hero-main/600/600" alt="Featured" class="w-full h-full object-cover">
+            <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,.3),transparent)"></div>
+            <div class="absolute bottom-6 left-6 right-6">
+              <div class="rounded-2xl p-4 glass">
+                <p class="text-xs font-medium mb-1" style="color:var(--text-muted)">Featured Product</p>
+                <p class="font-display font-semibold" style="color:var(--text)">Premium Collection 2025</p>
+                <p class="text-sm mt-1" style="color:var(--accent)">Starting from $49.99</p>
+              </div>
+            </div>
+          </div>
+          <div class="absolute -top-4 -right-4 w-24 h-24 rounded-2xl overflow-hidden shadow-xl hidden md:block" style="animation:float 3s ease-in-out infinite">
+            <img src="https://picsum.photos/seed/hero-float1/100/100" class="w-full h-full object-cover">
+          </div>
+          <div class="absolute -bottom-4 -left-4 w-20 h-20 rounded-2xl overflow-hidden shadow-xl hidden md:block" style="animation:float 3.5s ease-in-out infinite 0.5s">
+            <img src="https://picsum.photos/seed/hero-float2/80/80" class="w-full h-full object-cover">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Promo Banner -->
+  <section class="max-w-7xl mx-auto px-4 -mt-4 mb-12 reveal">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      ${[{icon:'truck',t:'Free Shipping',d:'On orders $50+'},{icon:'shield-check',t:'Secure Payment',d:'100% protected'},{icon:'rotate-ccw',t:'Easy Returns',d:'30-day policy'},{icon:'headphones',t:'24/7 Support',d:'Always here'}].map((p,i)=>`
+      <div class="flex items-center gap-3 p-4 rounded-2xl" style="background:var(--card);border:1px solid var(--border)">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(232,85,58,.1)"><i data-lucide="${p.icon}" class="w-5 h-5" style="color:var(--accent)"></i></div>
+        <div><p class="text-sm font-semibold" style="color:var(--text)">${p.t}</p><p class="text-xs" style="color:var(--text-muted)">${p.d}</p></div>
+      </div>`).join('')}
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section class="max-w-7xl mx-auto px-4 mb-16 reveal">
+    <div class="flex items-center justify-between mb-6">
+      <div><h2 class="font-display font-bold text-2xl" style="color:var(--text)">Shop by Category</h2><p class="text-sm mt-1" style="color:var(--text-muted)">Browse our curated collections</p></div>
+      <button onclick="navigate('products')" class="text-sm font-medium flex items-center gap-1" style="color:var(--accent)">View All <i data-lucide="arrow-right" class="w-4 h-4"></i></button>
+    </div>
+    <div class="flex gap-4 overflow-x-auto hide-scrollbar pb-2">
+      ${CATEGORIES.map((c,i)=>`
+      <button onclick="navigate('products',{category:'${c.id}'})" class="flex-shrink-0 group w-32 md:w-40">
+        <div class="relative rounded-2xl overflow-hidden aspect-square mb-3 card-hover">
+          <img src="${c.image}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy">
+          <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,.5),transparent)"></div>
+          <div class="absolute bottom-3 left-3 right-3">
+            <p class="text-white text-sm font-semibold">${c.name}</p>
+            <p class="text-white/70 text-xs">${c.count} items</p>
+          </div>
+        </div>
+      </button>`).join('')}
+    </div>
+  </section>
+
+  <!-- Flash Sale -->
+  <section class="max-w-7xl mx-auto px-4 mb-16 reveal">
+    <div class="rounded-3xl p-6 md:p-8 relative overflow-hidden" style="background:linear-gradient(135deg,#1A1A2E 0%,#2D1B3D 100%)">
+      <div class="absolute top-0 right-0 w-64 h-64 rounded-full opacity-20 blur-3xl" style="background:var(--accent)"></div>
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 relative">
+        <div>
+          <div class="flex items-center gap-2 mb-2"><i data-lucide="zap" class="w-5 h-5 text-gold-500"></i><span class="text-gold-500 font-bold text-sm uppercase tracking-wider">Flash Sale</span></div>
+          <h2 class="font-display font-bold text-2xl md:text-3xl text-white">Up to 40% Off</h2>
+          <p class="text-white/60 text-sm mt-1">Limited time offers on top products</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="text-center px-3 py-2 rounded-xl" style="background:rgba(255,255,255,.1)"><span id="flash-h" class="font-display font-bold text-xl text-white block">00</span><span class="text-white/50 text-[10px] uppercase">Hours</span></div>
+          <span class="text-white/40 font-bold text-xl">:</span>
+          <div class="text-center px-3 py-2 rounded-xl" style="background:rgba(255,255,255,.1)"><span id="flash-m" class="font-display font-bold text-xl text-white block">00</span><span class="text-white/50 text-[10px] uppercase">Min</span></div>
+          <span class="text-white/40 font-bold text-xl">:</span>
+          <div class="text-center px-3 py-2 rounded-xl" style="background:rgba(255,255,255,.1)"><span id="flash-s" class="font-display font-bold text-xl text-white block">00</span><span class="text-white/50 text-[10px] uppercase">Sec</span></div>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 relative">
+        ${flashProducts.map((p,i)=>`
+        <div class="rounded-2xl overflow-hidden cursor-pointer group" style="background:rgba(255,255,255,.08)" onclick="navigate('product',{id:${p.id}})">
+          <div class="aspect-square overflow-hidden"><img src="${p.image}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy"></div>
+          <div class="p-3"><p class="text-white text-sm font-medium line-clamp-1 mb-1">${p.name}</p>
+          <div class="flex items-center gap-2"><span class="text-white font-display font-bold">${fmt(p.price)}</span><span class="text-white/40 text-xs line-through">${fmt(p.originalPrice)}</span></div>
+          <div class="mt-2 h-1.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,.1)"><div class="h-full rounded-full" style="width:${Math.floor(Math.random()*40+50)}%;background:var(--accent)"></div></div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Products -->
+  <section class="max-w-7xl mx-auto px-4 mb-16 reveal">
+    <div class="flex items-center justify-between mb-6">
+      <div><h2 class="font-display font-bold text-2xl" style="color:var(--text)">Featured Products</h2><p class="text-sm mt-1" style="color:var(--text-muted)">Handpicked just for you</p></div>
+      <button onclick="navigate('products')" class="text-sm font-medium flex items-center gap-1" style="color:var(--accent)">See All <i data-lucide="arrow-right" class="w-4 h-4"></i></button>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+      ${PRODUCTS.slice(0,8).map((p,i)=>productCard(p,i*80)).join('')}
+    </div>
+  </section>
+
+  <!-- Trending -->
+  <section class="max-w-7xl mx-auto px-4 mb-16 reveal">
+    <div class="flex items-center justify-between mb-6">
+      <div><h2 class="font-display font-bold text-2xl" style="color:var(--text)">Trending Now</h2><p class="text-sm mt-1" style="color:var(--text-muted)">Most popular this week</p></div>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+      ${trending.map((p,i)=>productCard(p,i*80)).join('')}
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="max-w-7xl mx-auto px-4 mb-16 reveal">
+    <div class="text-center mb-10"><h2 class="font-display font-bold text-2xl" style="color:var(--text)">What Our Customers Say</h2><p class="text-sm mt-1" style="color:var(--text-muted)">Real reviews from real people</p></div>
+    <div class="grid md:grid-cols-3 gap-6">
+      ${REVIEWS.slice(0,3).map(r=>`
+      <div class="rounded-2xl p-6 card-hover" style="background:var(--card);border:1px solid var(--border)">
+        <div class="flex items-center gap-1 mb-4">${stars(r.rating)}</div>
+        <p class="text-sm leading-relaxed mb-4" style="color:var(--text)">"${r.text}"</p>
+        <div class="flex items-center gap-3">
+          <img src="${r.avatar}" class="w-10 h-10 rounded-full object-cover" loading="lazy">
+          <div><p class="text-sm font-semibold" style="color:var(--text)">${r.user}</p><p class="text-xs" style="color:var(--text-muted)">${r.date}</p></div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </section>
+
+  <!-- Newsletter -->
+  <section class="max-w-7xl mx-auto px-4 mb-16 reveal">
+    <div class="rounded-3xl p-8 md:p-12 text-center relative overflow-hidden" style="background:var(--card);border:1px solid var(--border)">
+      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full opacity-10 blur-3xl" style="background:var(--accent)"></div>
+      <div class="relative">
+        <h2 class="font-display font-bold text-2xl md:text-3xl mb-3" style="color:var(--text)">Stay in the Loop</h2>
+        <p class="text-sm mb-8 max-w-md mx-auto" style="color:var(--text-muted)">Subscribe to get exclusive deals, new arrivals, and 10% off your first order.</p>
+        <form onsubmit="event.preventDefault();toast('Subscribed successfully! Check your email.');this.reset()" class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+          <input type="email" placeholder="Enter your email" required class="flex-1 px-5 py-3.5 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)">
+          <button type="submit" class="btn-primary whitespace-nowrap">Subscribe</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t" style="border-color:var(--border);background:var(--card)">
+    <div class="max-w-7xl mx-auto px-4 py-12">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+        <div class="col-span-2 md:col-span-1">
+          <p class="font-display font-bold text-xl mb-4" style="color:var(--accent)">LUXE</p>
+          <p class="text-sm leading-relaxed mb-4" style="color:var(--text-muted)">Premium shopping experience with curated products from around the world.</p>
+          <div class="flex gap-3">${['instagram','twitter','facebook','youtube'].map(s=>`<a href="#" class="w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-elevated dark:hover:bg-elevated-dark" style="border:1px solid var(--border)"><i data-lucide="${s}" class="w-4 h-4" style="color:var(--text-muted)"></i></a>`).join('')}</div>
+        </div>
+        ${[{t:'Shop',l:['New Arrivals','Best Sellers','Sale','Collections']},{t:'Support',l:['Help Center','Shipping','Returns','Contact']},{t:'Company',l:['About Us','Careers','Press','Blog']}].map(col=>`
+        <div><h4 class="font-display font-semibold text-sm mb-4" style="color:var(--text)">${col.t}</h4><ul class="space-y-2.5">${col.l.map(l=>`<li><a href="#" class="text-sm transition-colors hover:text-coral-600" style="color:var(--text-muted)">${l}</a></li>`).join('')}</ul></div>`).join('')}
+      </div>
+      <div class="pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-4" style="border-color:var(--border)">
+        <p class="text-xs" style="color:var(--text-muted)">2025 LUXE. All rights reserved.</p>
+        <div class="flex items-center gap-4">${['Visa','Mastercard','PayPal','Apple Pay'].map(p=>`<span class="text-xs px-3 py-1 rounded-md font-medium" style="background:var(--bg);color:var(--text-muted);border:1px solid var(--border)">${p}</span>`).join('')}</div>
+      </div>
+    </div>
+  </footer>`;
+}
+
+// ===== PRODUCTS PAGE =====
+function renderProducts() {
+  const cat = S.params.category || S.filters.category;
+  let filtered = [...PRODUCTS];
+  if (cat) filtered = filtered.filter(p => p.category === cat);
+  const q = S.params.search;
+  if (q) filtered = filtered.filter(p => p.name.toLowerCase().includes(q.toLowerCase()));
+  filtered = filtered.filter(p => p.price >= S.filters.minPrice && p.price <= S.filters.maxPrice);
+  if (S.filters.inStock) filtered = filtered.filter(p => p.stock > 0);
+  const sort = S.params.sort || S.filters.sort;
+  if (sort === 'price-low') filtered.sort((a,b)=>a.price-b.price);
+  else if (sort === 'price-high') filtered.sort((a,b)=>b.price-a.price);
+  else if (sort === 'rating') filtered.sort((a,b)=>b.rating-a.rating);
+  else filtered.sort((a,b)=>b.reviews-a.reviews);
+  const perPage = S.productsPerPage;
+  const totalPages = Math.ceil(filtered.length / perPage);
+  const page = S.productPage;
+  const paged = filtered.slice((page-1)*perPage, page*perPage);
+  const catName = cat ? CATEGORIES.find(c=>c.id===cat)?.name : 'All Products';
+  return `
+  <div class="max-w-7xl mx-auto px-4 py-6">
+    <!-- Breadcrumb -->
+    <div class="flex items-center gap-2 text-sm mb-6" style="color:var(--text-muted)">
+      <button onclick="navigate('home')" class="hover:text-coral-600 transition-colors">Home</button>
+      <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+      <span style="color:var(--text)" class="font-medium">${catName}</span>
+    </div>
+    <div class="flex flex-col lg:flex-row gap-6">
+      <!-- Filters Sidebar -->
+      <aside class="lg:w-64 flex-shrink-0">
+        <div class="lg:sticky lg:top-20 space-y-6">
+          <div class="rounded-2xl p-5" style="background:var(--card);border:1px solid var(--border)">
+            <h3 class="font-display font-semibold text-sm mb-4" style="color:var(--text)">Categories</h3>
+            <div class="space-y-2">
+              <button onclick="S.filters.category='';S.productPage=1;navigate('products')" class="w-full text-left text-sm py-2 px-3 rounded-lg transition-colors ${!cat?'font-semibold':'hover:bg-elevated dark:hover:bg-elevated-dark'}" style="color:${!cat?'var(--accent)':'var(--text)'}">All Products</button>
+              ${CATEGORIES.map(c=>`<button onclick="S.filters.category='${c.id}';S.productPage=1;navigate('products',{category:'${c.id}'})" class="w-full text-left text-sm py-2 px-3 rounded-lg transition-colors flex items-center justify-between ${cat===c.id?'font-semibold':'hover:bg-elevated dark:hover:bg-elevated-dark'}" style="color:${cat===c.id?'var(--accent)':'var(--text)'}"><span>${c.name}</span><span class="text-xs" style="color:var(--text-muted)">${c.count}</span></button>`).join('')}
+            </div>
+          </div>
+          <div class="rounded-2xl p-5" style="background:var(--card);border:1px solid var(--border)">
+            <h3 class="font-display font-semibold text-sm mb-4" style="color:var(--text)">Price Range</h3>
+            <div class="flex items-center gap-2">
+              <input type="number" value="${S.filters.minPrice}" onchange="S.filters.minPrice=+this.value;S.productPage=1;renderPage()" class="w-full px-3 py-2 rounded-lg text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)" placeholder="Min">
+              <span style="color:var(--text-muted)">-</span>
+              <input type="number" value="${S.filters.maxPrice}" onchange="S.filters.maxPrice=+this.value;S.productPage=1;renderPage()" class="w-full px-3 py-2 rounded-lg text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)" placeholder="Max">
+            </div>
+          </div>
+          <div class="rounded-2xl p-5" style="background:var(--card);border:1px solid var(--border)">
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" ${S.filters.inStock?'checked':''} onchange="S.filters.inStock=this.checked;S.productPage=1;renderPage()" class="w-4 h-4 rounded accent-coral-600">
+              <span class="text-sm" style="color:var(--text)">In Stock Only</span>
+            </label>
+          </div>
+        </div>
+      </aside>
+      <!-- Products Grid -->
+      <div class="flex-1">
+        <div class="flex items-center justify-between mb-6">
+          <p class="text-sm" style="color:var(--text-muted)">${filtered.length} products found</p>
+          <select onchange="S.filters.sort=this.value;S.productPage=1;renderPage()" class="px-3 py-2 rounded-lg text-sm" style="background:var(--card);color:var(--text);border:1px solid var(--border)">
+            <option value="popular" ${sort==='popular'?'selected':''}>Most Popular</option>
+            <option value="price-low" ${sort==='price-low'?'selected':''}>Price: Low to High</option>
+            <option value="price-high" ${sort==='price-high'?'selected':''}>Price: High to Low</option>
+            <option value="rating" ${sort==='rating'?'selected':''}>Highest Rated</option>
+          </select>
+        </div>
+        ${paged.length ? `<div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">${paged.map((p,i)=>productCard(p,i*60)).join('')}</div>` :
+        `<div class="text-center py-20"><i data-lucide="package-x" class="w-16 h-16 mx-auto mb-4" style="color:var(--border)"></i><p class="font-display font-semibold text-lg mb-1" style="color:var(--text)">No products found</p><p class="text-sm" style="color:var(--text-muted)">Try adjusting your filters</p></div>`}
+        ${totalPages > 1 ? `<div class="flex items-center justify-center gap-2 mt-8">
+          ${Array.from({length:totalPages},(_,i)=>i+1).map(p=>`<button onclick="S.productPage=${p};renderPage()" class="w-10 h-10 rounded-lg text-sm font-medium transition-colors ${p===page?'text-white':'hover:bg-elevated dark:hover:bg-elevated-dark'}" style="${p===page?'background:var(--accent)':'color:var(--text);border:1px solid var(--border)'}">${p}</button>`).join('')}
+        </div>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ===== PRODUCT DETAIL PAGE =====
+function renderProduct() {
+  const p = PRODUCTS.find(x=>x.id===S.params.id);
+  if (!p) return `<div class="max-w-7xl mx-auto px-4 py-20 text-center"><p class="font-display font-bold text-xl" style="color:var(--text)">Product not found</p></div>`;
+  const related = PRODUCTS.filter(x=>x.category===p.category && x.id!==p.id).slice(0,4);
+  const disc = p.originalPrice > p.price ? discount(p.originalPrice, p.price) : 0;
+  return `
+  <div class="max-w-7xl mx-auto px-4 py-6">
+    <div class="flex items-center gap-2 text-sm mb-6" style="color:var(--text-muted)">
+      <button onclick="navigate('home')" class="hover:text-coral-600 transition-colors">Home</button><i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+      <button onclick="navigate('products',{category:'${p.category}'})" class="hover:text-coral-600 transition-colors">${CATEGORIES.find(c=>c.id===p.category)?.name}</button><i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+      <span style="color:var(--text)" class="font-medium line-clamp-1">${p.name}</span>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16">
+      <!-- Gallery -->
+      <div class="anim-fade-up">
+        <div class="rounded-2xl overflow-hidden aspect-square mb-4" style="background:var(--card);border:1px solid var(--border)">
+          <img id="main-product-img" src="${p.images[0]}" alt="${p.name}" class="w-full h-full object-cover">
+        </div>
+        ${p.images.length > 1 ? `<div class="flex gap-3 overflow-x-auto hide-scrollbar">${p.images.map((img,i)=>`<button onclick="document.getElementById('main-product-img').src='${img}'" class="flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden transition-all" style="border:2px solid ${i===0?'var(--accent)':'var(--border)'}"><img src="${img}" class="w-full h-full object-cover" loading="lazy"></button>`).join('')}</div>` : ''}
+      </div>
+      <!-- Info -->
+      <div class="anim-fade-up" style="animation-delay:150ms">
+        ${p.badge ? `<span class="inline-block text-xs font-bold px-3 py-1 rounded-full mb-3 ${p.badge==='Sale'||p.badge==='Hot'?'bg-coral-600 text-white':p.badge==='New'?'bg-mint-600 text-white':'bg-gold-500 text-gray-900'}">${p.badge}</span>` : ''}
+        <h1 class="font-display font-bold text-2xl md:text-3xl mb-3" style="color:var(--text)">${p.name}</h1>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="flex items-center gap-1">${stars(p.rating)}</div>
+          <span class="text-sm font-medium" style="color:var(--text)">${p.rating}</span>
+          <span class="text-sm" style="color:var(--text-muted)">(${p.reviews.toLocaleString()} reviews)</span>
+        </div>
+        <div class="flex items-baseline gap-3 mb-6">
+          <span class="font-display font-bold text-3xl" style="color:var(--text)">${fmt(p.price)}</span>
+          ${p.originalPrice > p.price ? `<span class="text-lg line-through" style="color:var(--text-muted)">${fmt(p.originalPrice)}</span><span class="text-sm font-bold px-2 py-0.5 rounded-full bg-red-500 text-white">-${disc}%</span>` : ''}
+        </div>
+        <p class="text-sm leading-relaxed mb-6" style="color:var(--text-muted)">${p.description}</p>
+        <!-- Colors -->
+        ${p.colors.length ? `<div class="mb-6"><p class="text-sm font-semibold mb-3" style="color:var(--text)">Color</p><div class="flex gap-2" id="color-options">${p.colors.map((c,i)=>`<button onclick="selectColor(this,'${c}')" class="w-10 h-10 rounded-full transition-all ${i===0?'ring-2 ring-offset-2 ring-coral-600':''}" style="background:${c};ring-offset-color:var(--bg)"></button>`).join('')}</div></div>` : ''}
+        <!-- Sizes -->
+        ${p.sizes.length ? `<div class="mb-6"><p class="text-sm font-semibold mb-3" style="color:var(--text)">Size</p><div class="flex flex-wrap gap-2" id="size-options">${p.sizes.map((s,i)=>`<button onclick="selectSize(this,'${s}')" class="px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${i===0?'':'hover:border-coral-600'}" style="background:var(--bg);color:var(--text);border:${i===0?'2px solid var(--accent)':'1px solid var(--border)'}">${s}</button>`).join('')}</div></div>` : ''}
+        <!-- Quantity -->
+        <div class="mb-6"><p class="text-sm font-semibold mb-3" style="color:var(--text)">Quantity</p>
+          <div class="inline-flex items-center rounded-xl overflow-hidden" style="border:1px solid var(--border)">
+            <button onclick="let q=document.getElementById('qty-input');q.value=Math.max(1,+q.value-1)" class="w-11 h-11 flex items-center justify-center hover:bg-elevated dark:hover:bg-elevated-dark"><i data-lucide="minus" class="w-4 h-4" style="color:var(--text-muted)"></i></button>
+            <input id="qty-input" type="number" value="1" min="1" max="${p.stock}" class="w-14 h-11 text-center text-sm font-medium" style="background:transparent;color:var(--text);border:none;border-left:1px solid var(--border);border-right:1px solid var(--border)">
+            <button onclick="let q=document.getElementById('qty-input');q.value=Math.min(${p.stock},+q.value+1)" class="w-11 h-11 flex items-center justify-center hover:bg-elevated dark:hover:bg-elevated-dark"><i data-lucide="plus" class="w-4 h-4" style="color:var(--text-muted)"></i></button>
+          </div>
+          <span class="text-xs ml-3" style="color:var(--text-muted)">${p.stock} in stock</span>
+        </div>
+        <!-- Actions -->
+        <div class="flex gap-3 mb-6">
+          <button onclick="addProductToCart(${p.id})" class="btn-primary flex-1 flex items-center justify-center gap-2 py-4 text-base" style="animation:pulse-glow 2s infinite"><i data-lucide="shopping-bag" class="w-5 h-5"></i> Add to Cart</button>
+          <button onclick="toggleWishlist(${p.id})" class="w-14 h-14 rounded-2xl flex items-center justify-center transition-all" style="border:1px solid var(--border)" aria-label="Add to wishlist">
+            <i data-lucide="heart" class="w-5 h-5 ${S.wishlist.includes(p.id)?'fill-coral-600 text-coral-600':''}" style="${S.wishlist.includes(p.id)?'':'color:var(--text-muted)'}"></i>
+          </button>
+        </div>
+        <!-- Specs -->
+        ${p.specs ? `<div class="rounded-2xl p-5" style="background:var(--bg);border:1px solid var(--border)">
+          <h3 class="font-display font-semibold text-sm mb-3" style="color:var(--text)">Specifications</h3>
+          <div class="grid grid-cols-2 gap-2">${p.specs.map(s=>`<div class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-mint-500"></i><span class="text-sm" style="color:var(--text-muted)">${s}</span></div>`).join('')}</div>
+        </div>` : ''}
+      </div>
+    </div>
+    <!-- Reviews -->
+    <section class="mb-16 reveal">
+      <h2 class="font-display font-bold text-2xl mb-6" style="color:var(--text)">Customer Reviews</h2>
+      <div class="grid md:grid-cols-2 gap-4">
+        ${REVIEWS.map(r=>`<div class="rounded-2xl p-5" style="background:var(--card);border:1px solid var(--border)">
+          <div class="flex items-center justify-between mb-3"><div class="flex items-center gap-1">${stars(r.rating,'w-4 h-4')}</div><span class="text-xs" style="color:var(--text-muted)">${r.date}</span></div>
+          <p class="text-sm leading-relaxed mb-3" style="color:var(--text)">"${r.text}"</p>
+          <div class="flex items-center gap-3"><img src="${r.avatar}" class="w-8 h-8 rounded-full object-cover"><span class="text-sm font-medium" style="color:var(--text)">${r.user}</span></div>
+        </div>`).join('')}
+      </div>
+    </section>
+    <!-- Related -->
+    ${related.length ? `<section class="mb-8 reveal"><h2 class="font-display font-bold text-2xl mb-6" style="color:var(--text)">You Might Also Like</h2><div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">${related.map((p,i)=>productCard(p,i*80)).join('')}</div></section>` : ''}
+  </div>`;
+}
+function selectColor(el, c) {
+  $$('#color-options button').forEach(b => { b.style.outline = 'none'; b.classList.remove('ring-2','ring-offset-2','ring-coral-600'); });
+  el.classList.add('ring-2','ring-offset-2','ring-coral-600');
+}
+function selectSize(el, s) {
+  $$('#size-options button').forEach(b => { b.style.border = '1px solid var(--border)'; b.style.fontWeight = '500'; });
+  el.style.border = '2px solid var(--accent)';
+  el.style.fontWeight = '600';
+}
+function addProductToCart(id) {
+  const qty = parseInt($('#qty-input')?.value || 1);
+  const colorEl = $('#color-options button.ring-2');
+  const sizeEl = $('#size-options button[style*="2px solid var(--accent)"]');
+  const color = colorEl ? colorEl.style.background : null;
+  const size = sizeEl ? sizeEl.textContent.trim() : null;
+  addToCart(id, color, size, qty);
+}
+
+// ===== CART PAGE =====
+function renderCartPage() {
+  const sub = getCartSubtotal();
+  const shipping = sub >= 50 ? 0 : 4.99;
+  return `
+  <div class="max-w-5xl mx-auto px-4 py-6">
+    <h1 class="font-display font-bold text-2xl mb-6" style="color:var(--text)">Shopping Cart</h1>
+    ${S.cart.length === 0 ? `<div class="text-center py-20 rounded-2xl" style="background:var(--card);border:1px solid var(--border)">
+      <i data-lucide="shopping-bag" class="w-20 h-20 mx-auto mb-4" style="color:var(--border)"></i>
+      <p class="font-display font-semibold text-xl mb-2" style="color:var(--text)">Your cart is empty</p>
+      <p class="text-sm mb-6" style="color:var(--text-muted)">Looks like you haven't added anything yet</p>
+      <button onclick="navigate('products')" class="btn-primary">Start Shopping</button>
+    </div>` : `
+    <div class="grid lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-4">
+        ${S.cart.map(item => { const p = PRODUCTS.find(x=>x.id===item.id); if(!p) return ''; return `
+        <div class="flex gap-4 p-4 rounded-2xl" style="background:var(--card);border:1px solid var(--border)">
+          <img src="${p.image}" class="w-24 h-24 md:w-28 md:h-28 rounded-xl object-cover flex-shrink-0 cursor-pointer" onclick="navigate('product',{id:${p.id}})">
+          <div class="flex-1 min-w-0">
+            <h3 class="font-medium text-sm md:text-base line-clamp-1 mb-1 cursor-pointer hover:text-coral-600" style="color:var(--text)" onclick="navigate('product',{id:${p.id}})">${p.name}</h3>
+            ${item.color ? `<div class="flex items-center gap-1.5 mb-1"><span class="w-4 h-4 rounded-full border" style="background:${item.color};border-color:var(--border)"></span><span class="text-xs" style="color:var(--text-muted)">Selected</span></div>` : ''}
+            ${item.size ? `<p class="text-xs mb-1" style="color:var(--text-muted)">Size: ${item.size}</p>` : ''}
+            <p class="font-display font-bold mt-2" style="color:var(--text)">${fmt(item.price)}</p>
+            <div class="flex items-center justify-between mt-3">
+              <div class="flex items-center rounded-lg overflow-hidden" style="border:1px solid var(--border)">
+                <button onclick="updateQty('${item.key}',${item.qty-1})" class="w-8 h-8 flex items-center justify-center hover:bg-elevated dark:hover:bg-elevated-dark"><i data-lucide="minus" class="w-3.5 h-3.5" style="color:var(--text-muted)"></i></button>
+                <span class="w-10 text-center text-sm font-medium" style="color:var(--text)">${item.qty}</span>
+                <button onclick="updateQty('${item.key}',${item.qty+1})" class="w-8 h-8 flex items-center justify-center hover:bg-elevated dark:hover:bg-elevated-dark"><i data-lucide="plus" class="w-3.5 h-3.5" style="color:var(--text-muted)"></i></button>
+              </div>
+              <button onclick="removeFromCart('${item.key}')" class="text-sm font-medium text-red-500 hover:text-red-600 flex items-center gap-1"><i data-lucide="trash-2" class="w-4 h-4"></i>Remove</button>
+            </div>
+          </div>
+        </div>`; }).join('')}
+      </div>
+      <div>
+        <div class="rounded-2xl p-6 sticky top-20" style="background:var(--card);border:1px solid var(--border)">
+          <h3 class="font-display font-semibold mb-4" style="color:var(--text)">Order Summary</h3>
+          <div class="space-y-3 mb-4">
+            <div class="flex justify-between text-sm"><span style="color:var(--text-muted)">Subtotal</span><span style="color:var(--text)">${fmt(sub)}</span></div>
+            <div class="flex justify-between text-sm"><span style="color:var(--text-muted)">Shipping</span><span style="color:${shipping===0?'var(--mint)':'var(--text)'}">${shipping===0?'Free':fmt(shipping)}</span></div>
+            <div class="flex justify-between text-sm"><span style="color:var(--text-muted)">Tax (estimated)</span><span style="color:var(--text)">${fmt(sub*0.08)}</span></div>
+          </div>
+          <div class="h-px mb-4" style="background:var(--border)"></div>
+          <div class="flex justify-between mb-6"><span class="font-display font-semibold" style="color:var(--text)">Total</span><span class="font-display font-bold text-xl" style="color:var(--text)">${fmt(sub+shipping+sub*0.08)}</span></div>
+          <!-- Promo -->
+          <div class="flex gap-2 mb-4">
+            <input id="promo-input" type="text" placeholder="Promo code" class="flex-1 px-4 py-2.5 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)">
+            <button onclick="applyPromo()" class="px-4 py-2.5 rounded-xl text-sm font-medium" style="background:var(--bg);color:var(--text);border:1px solid var(--border)">Apply</button>
+          </div>
+          <button onclick="navigate('checkout')" class="btn-primary w-full py-4">Proceed to Checkout</button>
+          <button onclick="navigate('products')" class="w-full text-center text-sm font-medium py-3" style="color:var(--accent)">Continue Shopping</button>
+        </div>
+      </div>
+    </div>`}
+  </div>`;
+}
+function applyPromo() {
+  const code = $('#promo-input')?.value?.trim().toUpperCase();
+  if (code === 'LUXE10') { toast('Promo code applied! 10% off'); }
+  else if (code) { toast('Invalid promo code','error'); }
+}
+
+// ===== CHECKOUT PAGE =====
+function renderCheckout() {
+  if (S.cart.length === 0) { navigate('cart'); return ''; }
+  const sub = getCartSubtotal();
+  const shipping = sub >= 50 ? 0 : 4.99;
+  const steps = ['Shipping','Payment','Review'];
+  return `
+  <div class="max-w-5xl mx-auto px-4 py-6">
+    <h1 class="font-display font-bold text-2xl mb-6" style="color:var(--text)">Checkout</h1>
+    <!-- Steps -->
+    <div class="flex items-center gap-2 mb-8 overflow-x-auto hide-scrollbar">
+      ${steps.map((s,i)=>`<div class="flex items-center gap-2 flex-shrink-0">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${i<=S.checkoutStep?'text-white':''}" style="${i<=S.checkoutStep?'background:var(--accent)':'background:var(--bg);color:var(--text-muted);border:1px solid var(--border)'}">${i<S.checkoutStep?'<i data-lucide="check" class="w-4 h-4"></i>':i+1}</div>
+        <span class="text-sm font-medium hidden sm:inline" style="color:${i<=S.checkoutStep?'var(--text)':'var(--text-muted)'}">${s}</span>
+        ${i<2?`<div class="w-8 md:w-16 h-0.5 rounded-full" style="background:${i<S.checkoutStep?'var(--accent)':'var(--border)'}"></div>`:''}
+      </div>`).join('')}
+    </div>
+    <div class="grid lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2">
+        ${S.checkoutStep === 0 ? `
+        <div class="rounded-2xl p-6" style="background:var(--card);border:1px solid var(--border)">
+          <h2 class="font-display font-semibold text-lg mb-6" style="color:var(--text)">Shipping Address</h2>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="col-span-2 sm:col-span-1"><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">First Name</label><input type="text" value="John" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)"></div>
+            <div class="col-span-2 sm:col-span-1"><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">Last Name</label><input type="text" value="Doe" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)"></div>
+            <div class="col-span-2"><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">Address</label><input type="text" value="123 Main Street" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)"></div>
+            <div class="col-span-2 sm:col-span-1"><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">City</label><input type="text" value="New York" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)"></div>
+            <div class="col-span-2 sm:col-span-1"><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">Postal Code</label><input type="text" value="10001" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)"></div><div class="col-span-2 sm:col-span-1"><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">ZIP Code</label><input type="text" value="10001" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)"></div>
+            <div class="col-span-2 sm:col-span-1"><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">Phone</label><input type="tel" value="+1 (555) 123-4567" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)"></div>
+          </div>
+          <div class="flex items-center gap-3 mt-6">
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked class="w-4 h-4 rounded accent-coral-600"><span class="text-sm" style="color:var(--text-muted)">Save this address</span></label>
+          </div>
+          <button onclick="S.checkoutStep=1;renderPage()" class="btn-primary mt-6">Continue to Payment</button>
+        </div>` : S.checkoutStep === 1 ? `
+        <div class="rounded-2xl p-6" style="background:var(--card);border:1px solid var(--border)">
+          <h2 class="font-display font-semibold text-lg mb-6" style="color:var(--text)">Payment Method</h2>
+          <div class="space-y-3 mb-6">
+            ${[{id:'card',icon:'credit-card',t:'Credit / Debit Card',sub:'Visa, Mastercard, Amex'},{id:'paypal',icon:'wallet',t:'PayPal',sub:'Pay with your PayPal account'},{id:'apple',icon:'smartphone',t:'Apple Pay',sub:'Quick and secure'}].map((m,i)=>`
+            <label class="flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all" style="background:${i===0?'rgba(232,85,58,.05)':'var(--bg)'};border:${i===0?'2px solid var(--accent)':'1px solid var(--border)'}">
+              <input type="radio" name="payment" ${i===0?'checked':''} class="w-4 h-4 accent-coral-600">
+              <i data-lucide="${m.icon}" class="w-5 h-5" style="color:var(--text-muted)"></i>
+              <div><p class="text-sm font-medium" style="color:var(--text)">${m.t}</p><p class="text-xs" style="color:var(--text-muted)">${m.sub}</p></div>
+            </label>`).join('')}
+          </div>
+          <div class="space-y-4 mb-6">
+            <div><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">Card Number</label><input type="text" placeholder="4242 4242 4242 4242" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)"></div>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">Expiry Date</label><input type="text" placeholder="MM/YY" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)"></div>
+              <div><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">CVV</label><input type="text" placeholder="123" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)"></div>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <button onclick="S.checkoutStep=0;renderPage()" class="btn-outline flex-1">Back</button>
+            <button onclick="S.checkoutStep=2;renderPage()" class="btn-primary flex-1">Review Order</button>
+          </div>
+        </div>` : `
+        <!-- Order Review -->
+        <div class="rounded-2xl p-6 mb-4" style="background:var(--card);border:1px solid var(--border)">
+          <h2 class="font-display font-semibold text-lg mb-4" style="color:var(--text)">Order Review</h2>
+          <div class="space-y-3 mb-4">
+            ${S.cart.map(item => { const p = PRODUCTS.find(x=>x.id===item.id); if(!p) return ''; return `
+            <div class="flex items-center gap-3">
+              <img src="${p.image}" class="w-14 h-14 rounded-lg object-cover">
+              <div class="flex-1 min-w-0"><p class="text-sm font-medium line-clamp-1" style="color:var(--text)">${p.name}</p><p class="text-xs" style="color:var(--text-muted)">Qty: ${item.qty}${item.size?' / Size: '+item.size:''}</p></div>
+              <span class="text-sm font-semibold" style="color:var(--text)">${fmt(item.price*item.qty)}</span>
+            </div>`; }).join('')}
+          </div>
+          <div class="rounded-xl p-4" style="background:var(--bg)">
+            <div class="flex items-center gap-2 mb-2"><i data-lucide="map-pin" class="w-4 h-4" style="color:var(--accent)"></i><span class="text-sm font-medium" style="color:var(--text)">123 Main Street, New York, NY 10001</span></div>
+            <div class="flex items-center gap-2"><i data-lucide="credit-card" class="w-4 h-4" style="color:var(--accent)"></i><span class="text-sm" style="color:var(--text-muted)">Credit Card ending in 4242</span></div>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="S.checkoutStep=1;renderPage()" class="btn-outline flex-1">Back</button>
+          <button onclick="placeOrder()" class="btn-primary flex-1 py-4 flex items-center justify-center gap-2"><i data-lucide="lock" class="w-4 h-4"></i> Place Order</button>
+        </div>`}
+      </div>
+      <!-- Order Summary Sidebar -->
+      <div>
+        <div class="rounded-2xl p-6 sticky top-20" style="background:var(--card);border:1px solid var(--border)">
+          <h3 class="font-display font-semibold mb-4" style="color:var(--text)">Order Summary</h3>
+          <div class="space-y-3 mb-4 max-h-48 overflow-y-auto">
+            ${S.cart.map(item => { const p = PRODUCTS.find(x=>x.id===item.id); if(!p) return ''; return `<div class="flex items-center gap-3"><img src="${p.image}" class="w-12 h-12 rounded-lg object-cover"><div class="flex-1 min-w-0"><p class="text-xs font-medium line-clamp-1" style="color:var(--text)">${p.name}</p><p class="text-xs" style="color:var(--text-muted)">x${item.qty}</p></div><span class="text-xs font-semibold" style="color:var(--text)">${fmt(item.price*item.qty)}</span></div>`; }).join('')}
+          </div>
+          <div class="space-y-2 pt-4 border-t" style="border-color:var(--border)">
+            <div class="flex justify-between text-sm"><span style="color:var(--text-muted)">Subtotal</span><span style="color:var(--text)">${fmt(sub)}</span></div>
+            <div class="flex justify-between text-sm"><span style="color:var(--text-muted)">Shipping</span><span style="color:${shipping===0?'var(--mint)':'var(--text)'}">${shipping===0?'Free':fmt(shipping)}</span></div>
+            <div class="flex justify-between text-sm"><span style="color:var(--text-muted)">Tax</span><span style="color:var(--text)">${fmt(sub*0.08)}</span></div>
+            <div class="h-px my-2" style="background:var(--border)"></div>
+            <div class="flex justify-between"><span class="font-display font-semibold" style="color:var(--text)">Total</span><span class="font-display font-bold text-xl" style="color:var(--text)">${fmt(sub+shipping+sub*0.08)}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function placeOrder() {
+  const orderId = 'LX-' + Math.floor(10000 + Math.random() * 90000);
+  S.cart = []; saveCart(); updateCartBadge(); S.checkoutStep = 0;
+  $('#page-container').innerHTML = `
+  <div class="max-w-lg mx-auto px-4 py-20 text-center anim-scale">
+    <div class="w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center" style="background:rgba(45,212,168,.15)">
+      <i data-lucide="check-circle" class="w-10 h-10 text-mint-500"></i>
+    </div>
+    <h1 class="font-display font-bold text-3xl mb-3" style="color:var(--text)">Order Confirmed!</h1>
+    <p class="text-sm mb-2" style="color:var(--text-muted)">Thank you for your purchase</p>
+    <p class="font-display font-semibold text-lg mb-8" style="color:var(--accent)">Order #${orderId}</p>
+    <div class="rounded-2xl p-6 mb-8 text-left" style="background:var(--card);border:1px solid var(--border)">
+      <div class="flex items-center gap-3 mb-4 pb-4 border-b" style="border-color:var(--border)">
+        <i data-lucide="package" class="w-5 h-5" style="color:var(--accent)"></i>
+        <div><p class="text-sm font-medium" style="color:var(--text)">Estimated Delivery</p><p class="text-sm font-semibold" style="color:var(--text)">Dec 22 - Dec 25, 2024</p></div>
+      </div>
+      <div class="flex items-center gap-3 mb-4 pb-4 border-b" style="border-color:var(--border)">
+        <i data-lucide="mail" class="w-5 h-5" style="color:var(--accent)"></i>
+        <div><p class="text-sm font-medium" style="color:var(--text)">Confirmation Email</p><p class="text-sm" style="color:var(--text-muted)">Sent to your email address</p></div>
+      </div>
+      <div class="flex items-center gap-3">
+        <i data-lucide="headphones" class="w-5 h-5" style="color:var(--accent)"></i>
+        <div><p class="text-sm font-medium" style="color:var(--text)">Need Help?</p><p class="text-sm" style="color:var(--text-muted)">Contact our 24/7 support team</p></div>
+      </div>
+    </div>
+    <div class="flex gap-3">
+      <button onclick="navigate('account')" class="btn-outline flex-1">View Orders</button>
+      <button onclick="navigate('products')" class="btn-primary flex-1">Keep Shopping</button>
+    </div>
+  </div>`;
+  lucide.createIcons();
+  toast('Order placed successfully!');
+}
+
+// ===== ACCOUNT PAGE =====
+function renderAccount() {
+  if (!S.user) { openAuth('login'); return renderHome(); }
+  const tabs = [{id:'profile',icon:'user',t:'Profile'},{id:'orders',icon:'package',t:'Orders'},{id:'wishlist',icon:'heart',t:'Wishlist'},{id:'addresses',icon:'map-pin',t:'Addresses'},{id:'settings',icon:'settings',t:'Settings'},{id:'admin',icon:'layout-dashboard',t:'Admin Dashboard'}];
+  const content = () => {
+    switch(S.accountTab) {
+      case 'profile': return `<div class="rounded-2xl p-6" style="background:var(--card);border:1px solid var(--border)">
+        <div class="flex items-center gap-4 mb-6 pb-6 border-b" style="border-color:var(--border)">
+          <img src="${S.user.avatar}" class="w-16 h-16 rounded-full object-cover"><div><h3 class="font-display font-semibold text-lg" style="color:var(--text)">${S.user.name}</h3><p class="text-sm" style="color:var(--text-muted)">${S.user.email}</p></div>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">Full Name</label><input type="text" value="${S.user.name}" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)"></div>
+          <div><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">Email</label><input type="email" value="${S.user.email}" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)"></div>
+          <div><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">Phone</label><input type="tel" value="+1 (555) 123-4567" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)"></div>
+          <div><label class="block text-sm font-medium mb-1.5" style="color:var(--text)">Date of Birth</label><input type="date" class="w-full px-4 py-3 rounded-xl text-sm" style="background:var(--bg);color:var(--text);border:1px solid var(--border)"></div>
+        </div>
+        <button onclick="toast('Profile updated successfully!')" class="btn-primary mt-6">Save Changes</button>
+      </div>`;
+      case 'orders': return `<div class="space-y-4">
+        ${SAMPLE_ORDERS.map(o => {
+          const sc = o.status==='Delivered'?'text-mint-500 bg-mint-50 dark:bg-mint-900/20':'text-blue-500 bg-blue-50 dark:bg-blue-900/20';
+          return `<div class="rounded-2xl p-5" style="background:var(--card);border:1px solid var(--border)">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div><p class="font-display font-semibold text-sm" style="color:var(--text)">Order #${o.id}</p><p class="text-xs" style="color:var(--text-muted)">${o.date}</p></div>
+              <div class="flex items-center gap-3"><span class="text-xs font-medium px-3 py-1 rounded-full ${sc}">${o.status}</span><span class="font-display font-semibold" style="color:var(--text)">${fmt(o.total)}</span></div>
+            </div>
+            <div class="flex gap-3 overflow-x-auto hide-scrollbar">${o.items.map(it=>`<div class="flex items-center gap-2 flex-shrink-0 pr-3 border-r last:border-0" style="border-color:var(--border)"><img src="${it.img}" class="w-12 h-12 rounded-lg object-cover"><div><p class="text-xs font-medium line-clamp-1 max-w-[120px]" style="color:var(--text)">${it.name}</p><p class="text-xs" style="color:var(--text-muted)">x${it.qty}</p></div></div>`).join('')}</div>
+          </div>`; }).join('')}
+      </div>`;
+      case 'wishlist': return S.wishlist.length === 0 ? `<div class="text-center py-16 rounded-2xl" style="background:var(--card);border:1px solid var(--border)"><i data-lucide="heart" class="w-16 h-16 mx-auto mb-4" style="color:var(--border)"></i><p class="font-display font-semibold text-lg mb-2" style="color:var(--text)">Wishlist is empty</p><p class="text-sm mb-6" style="color:var(--text-muted)">Save items you love for later</p><button onclick="navigate('products')" class="btn-primary">Browse Products</button></div>` :
+        `<div class="grid grid-cols-2 md:grid-cols-3 gap-4">${PRODUCTS.filter(p=>S.wishlist.includes(p.id)).map((p,i)=>productCard(p,i*60)).join('')}</div>`;
+      case 'addresses': return `<div class="space-y-4">
+        <div class="rounded-2xl p-5" style="background:var(--card);border:1px solid var(--border)">
+          <div class="flex items-center justify-between mb-2"><span class="text-xs font-bold px-2 py-0.5 rounded-full" style="background:rgba(232,85,58,.1);color:var(--accent)">Default</span><button class="text-xs font-medium" style="color:var(--accent)">Edit</button></div>
+          <p class="text-sm font-medium mb-1" style="color:var(--text)">John Doe</p>
+          <p class="text-sm" style="color:var(--text-muted)">123 Main Street, New York, NY 10001</p>
+          <p class="text-sm" style="color:var(--text-muted)">+1 (555) 123-4567</p>
+        </div>
+        <button class="w-full rounded-2xl p-5 flex items-center justify-center gap-2 text-sm font-medium transition-colors" style="border:2px dashed var(--border);color:var(--text-muted)" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'"><i data-lucide="plus" class="w-4 h-4"></i>Add New Address</button>
+      </div>`;
+      case 'settings': return `<div class="rounded-2xl p-6 space-y-6" style="background:var(--card);border:1px solid var(--border)">
+        <div class="flex items-center justify-between"><div><p class="text-sm font-medium" style="color:var(--text)">Dark Mode</p><p class="text-xs" style="color:var(--text-muted)">Switch between light and dark theme</p></div><button onclick="toggleDark()" class="w-12 h-7 rounded-full relative transition-colors" style="background:${S.dark?'var(--accent)':'var(--border)'}"><span class="absolute top-0.5 ${S.dark?'right-0.5':'left-0.5'} w-6 h-6 rounded-full bg-white shadow transition-all"></span></button></div>
+        <div class="h-px" style="background:var(--border)"></div>
+        <div class="flex items-center justify-between"><div><p class="text-sm font-medium" style="color:var(--text)">Push Notifications</p><p class="text-xs" style="color:var(--text-muted)">Receive order updates and deals</p></div><button class="w-12 h-7 rounded-full relative" style="background:var(--accent)"><span class="absolute top-0.5 right-0.5 w-6 h-6 rounded-full bg-white shadow"></span></button></div>
+        <div class="h-px" style="background:var(--border)"></div>
+        <div class="flex items-center justify-between"><div><p class="text-sm font-medium" style="color:var(--text)">Email Newsletter</p><p class="text-xs" style="color:var(--text-muted)">Weekly deals and new arrivals</p></div><button class="w-12 h-7 rounded-full relative" style="background:var(--border)"><span class="absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow"></span></button></div>
+        <div class="h-px" style="background:var(--border)"></div>
+        <div><button onclick="S.user=null;localStorage.removeItem('luxe_user');renderHeader();renderMobileNav();navigate('home');toast('Logged out successfully','info')" class="text-sm font-medium text-red-500 hover:text-red-600">Sign Out</button></div>
+      </div>`;
+      case 'admin': S.page='admin'; S.adminTab='overview'; return renderAdmin();
+      default: return '';
+    }
+  };
+  return `<div class="max-w-6xl mx-auto px-4 py-6">
+    <h1 class="font-display font-bold text-2xl mb-6" style="color:var(--text)">My Account</h1>
+    <div class="flex flex-col md:flex-row gap-6">
+      <aside class="md:w-56 flex-shrink-0">
+        <div class="flex md:flex-col gap-1 overflow-x-auto hide-scrollbar pb-2 md:pb-0">
+          ${tabs.map(t=>`<button onclick="${t.id==='admin'?'S.page=\'admin\';S.adminTab=\'overview\';navigate(\'admin\')':'S.accountTab=\''+t.id+'\';renderPage()'}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${S.accountTab===t.id?'text-white':'hover:bg-elevated dark:hover:bg-elevated-dark'}" style="${S.accountTab===t.id?'background:var(--accent)':'color:var(--text)'}"><i data-lucide="${t.icon}" class="w-4 h-4"></i>${t.t}</button>`).join('')}
+        </div>
+      </aside>
+      <div class="flex-1">${content()}</div>
+    </div>
+  </div>`;
+}
+
+// ===== ADMIN DASHBOARD =====
+function renderAdmin() {
+  if (!S.user) { openAuth('login'); return renderHome(); }
+  const tabs = [{id:'overview',icon:'layout-dashboard',t:'Overview'},{id:'products',icon:'package',t:'Products'},{id:'orders',icon:'shopping-bag',t:'Orders'},{id:'customers',icon:'users',t:'Customers'},{id:'coupons',icon:'ticket',t:'Coupons'}];
+  const stats = [{label:'Total Revenue',value:'$124,563',change:'+12.5%',up:true,icon:'dollar-sign'},{label:'Orders',value:'1,847',change:'+8.2%',up:true,icon:'shopping-bag'},{label:'Customers',value:'3,421',change:'+15.3%',up:true,icon:'users'},{label:'Conversion',value:'3.24%',change:'-0.4%',up:false,icon:'trending-up'}];
+  const content = () => {
+    switch(S.adminTab) {
+      case 'overview': return `
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">${stats.map((s,i)=>`
+          <div class="rounded-2xl p-5 anim-fade-up" style="background:var(--card);border:1px solid var(--border);animation-delay:${i*80}ms">
+            <div class="flex items-center justify-between mb-3"><div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(232,85,58,.1)"><i data-lucide="${s.icon}" class="w-5 h-5" style="color:var(--accent)"></i></div><span class="text-xs font-medium px-2 py-0.5 rounded-full ${s.up?'text-mint-600 bg-mint-50 dark:bg-mint-900/20':'text-red-500 bg-red-50 dark:bg-red-900/20'}">${s.change}</span></div>
+            <p class="font-display font-bold text-xl md:text-2xl" style="color:var(--text)">${s.value}</p><p class="text-xs mt-1" style="color:var(--text-muted)">${s.label}</p>
+          </div>`).join('')}</div>
+        <div class="grid lg:grid-cols-3 gap-6 mb-6">
+          <div class="lg:col-span-2 rounded-2xl p-5" style="background:var(--card);border:1px solid var(--border)"><h3 class="font-display font-semibold text-sm mb-4" style="color:var(--text)">Revenue Overview</h3><canvas id="revenueChart" height="200"></canvas></div>
+          <div class="rounded-2xl p-5" style="background:var(--card);border:1px solid var(--border)"><h3 class="font-display font-semibold text-sm mb-4" style="color:var(--text)">Top Categories</h3><canvas id="categoryChart" height="200"></canvas></div>
+        </div>
+        <div class="rounded-2xl p-5" style="background:var(--card);border:1px solid var(--border)">
+          <h3 class="font-display font-semibold text-sm mb-4" style="color:var(--text)">Recent Orders</h3>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr style="color:var(--text-muted)"><th class="text-left pb-3 font-medium">Order</th><th class="text-left pb-3 font-medium">Customer</th><th class="text-left pb-3 font-medium hidden md:table-cell">Date</th><th class="text-left pb-3 font-medium">Status</th><th class="text-right pb-3 font-medium">Amount</th></tr></thead><tbody>
+          ${[{id:'LX-28491',cust:'Sarah M.',date:'Dec 15',status:'Delivered',amt:'$289.98',sc:'text-mint-500 bg-mint-50 dark:bg-mint-900/20'},{id:'LX-28490',cust:'James K.',date:'Dec 15',status:'Processing',sc:'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20',amt:'$159.99'},{id:'LX-28489',cust:'Emily R.',date:'Dec 14',status:'Shipped',sc:'text-blue-500 bg-blue-50 dark:bg-blue-900/20',amt:'$89.99'},{id:'LX-28488',cust:'Michael T.',date:'Dec 14',status:'Delivered',sc:'text-mint-500 bg-mint-50 dark:bg-mint-900/20',amt:'$349.98'},{id:'LX-28487',cust:'Lisa P.',date:'Dec 13',status:'Cancelled',sc:'text-red-500 bg-red-50 dark:bg-red-900/20',amt:'$69.99'}].map(o=>`<tr class="border-t" style="border-color:var(--border)"><td class="py-3 font-medium" style="color:var(--text)">${o.id}</td><td style="color:var(--text)">${o.cust}</td><td class="hidden md:table-cell" style="color:var(--text-muted)">${o.date}</td><td><span class="text-xs font-medium px-2.5 py-1 rounded-full ${o.sc}">${o.status}</span></td><td class="text-right font-medium" style="color:var(--text)">${o.amt}</td></tr>`).join('')}
+          </tbody></table></div>
+        </div>`;
+      case 'products': return `
+        <div class="flex items-center justify-between mb-6"><h2 class="font-display font-semibold text-lg" style="color:var(--text)">Products (${PRODUCTS.length})</h2><button onclick="toast('Product creation form would open here','info')" class="btn-primary text-sm py-2.5 px-4 flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i>Add Product</button></div>
+        <div class="rounded-2xl overflow-hidden" style="background:var(--card);border:1px solid var(--border)">
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr style="background:var(--bg);color:var(--text-muted)"><th class="text-left p-4 font-medium">Product</th><th class="text-left p-4 font-medium hidden md:table-cell">Category</th><th class="text-left p-4 font-medium">Price</th><th class="text-left p-4 font-medium hidden md:table-cell">Stock</th><th class="text-left p-4 font-medium hidden lg:table-cell">Rating</th><th class="text-right p-4 font-medium">Actions</th></tr></thead><tbody>
+          ${PRODUCTS.map(p=>`<tr class="border-t" style="border-color:var(--border)"><td class="p-4"><div class="flex items-center gap-3"><img src="${p.image}" class="w-10 h-10 rounded-lg object-cover"><span class="font-medium line-clamp-1 max-w-[200px]" style="color:var(--text)">${p.name}</span></div></td><td class="p-4 hidden md:table-cell" style="color:var(--text-muted)">${CATEGORIES.find(c=>c.id===p.category)?.name}</td><td class="p-4 font-medium" style="color:var(--text)">${fmt(p.price)}</td><td class="p-4 hidden md:table-cell"><span class="${p.stock<20?'text-red-500':'text-mint-500'}">${p.stock}</span></td><td class="p-4 hidden lg:table-cell"><div class="flex items-center gap-1"><i data-lucide="star" class="w-3 h-3 fill-gold-500 text-gold-500"></i><span style="color:var(--text)">${p.rating}</span></div></td><td class="p-4 text-right"><div class="flex items-center justify-end gap-1"><button onclick="navigate('product',{id:${p.id}})" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-elevated dark:hover:bg-elevated-dark"><i data-lucide="eye" class="w-4 h-4" style="color:var(--text-muted)"></i></button><button class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-elevated dark:hover:bg-elevated-dark"><i data-lucide="pencil" class="w-4 h-4" style="color:var(--text-muted)"></i></button></div></td></tr>`).join('')}
+          </tbody></table></div>
+        </div>`;
+      case 'orders': return `
+        <h2 class="font-display font-semibold text-lg mb-6" style="color:var(--text)">All Orders</h2>
+        <div class="rounded-2xl overflow-hidden" style="background:var(--card);border:1px solid var(--border)">
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr style="background:var(--bg);color:var(--text-muted)"><th class="text-left p-4 font-medium">Order ID</th><th class="text-left p-4 font-medium">Customer</th><th class="text-left p-4 font-medium hidden md:table-cell">Items</th><th class="text-left p-4 font-medium">Total</th><th class="text-left p-4 font-medium">Status</th><th class="text-right p-4 font-medium">Action</th></tr></thead><tbody>
+          ${SAMPLE_ORDERS.map(o=>{const sc=o.status==='Delivered'?'text-mint-500 bg-mint-50 dark:bg-mint-900/20':'text-blue-500 bg-blue-50 dark:bg-blue-900/20';return`<tr class="border-t" style="border-color:var(--border)"><td class="p-4 font-medium" style="color:var(--text)">${o.id}</td><td style="color:var(--text)">${o.items[0].name.split(' ').slice(0,2).join(' ')}</td><td class="p-4 hidden md:table-cell" style="color:var(--text-muted)">${o.items.length} item(s)</td><td class="p-4 font-medium" style="color:var(--text)">${fmt(o.total)}</td><td class="p-4"><span class="text-xs font-medium px-2.5 py-1 rounded-full ${sc}">${o.status}</span></td><td class="p-4 text-right"><button class="text-xs font-medium" style="color:var(--accent)">View</button></td></tr>`;}).join('')}
+          </tbody></table></div>
+        </div>`;
+      case 'customers': return `
+        <h2 class="font-display font-semibold text-lg mb-6" style="color:var(--text)">Customers</h2>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          ${[{n:'Sarah Mitchell',e:'sarah@email.com',o:12,s:'$2,340'},{n:'James Kim',e:'james@email.com',o:8,s:'$1,560'},{n:'Emily Roberts',e:'emily@email.com',o:15,s:'$3,120'},{n:'Michael Torres',e:'michael@email.com',o:5,s:'$890'},{n:'Lisa Park',e:'lisa@email.com',o:20,s:'$4,560'},{n:'David Chen',e:'david@email.com',o:3,s:'$450'}].map(c=>`
+          <div class="rounded-2xl p-5" style="background:var(--card);border:1px solid var(--border)">
+            <div class="flex items-center gap-3 mb-4"><img src="https://i.pravatar.cc/80?u=${c.e}" class="w-11 h-11 rounded-full object-cover"><div><p class="text-sm font-semibold" style="color:var(--text)">${c.n}</p><p class="text-xs" style="color:var(--text-muted)">${c.e}</p></div></div>
+            <div class="flex justify-between text-sm"><span style="color:var(--text-muted)">${c.o} orders</span><span class="font-semibold" style="color:var(--text)">${c.s}</span></div>
+          </div>`).join('')}
+        </div>`;
+      case 'coupons': return `
+        <div class="flex items-center justify-between mb-6"><h2 class="font-display font-semibold text-lg" style="color:var(--text)">Coupons</h2><button onclick="toast('Coupon creation form','info')" class="btn-primary text-sm py-2.5 px-4 flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i>Create Coupon</button></div>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          ${[{code:'LUXE10',disc:'10%',type:'Percentage',uses:'1,234/5000',active:true},{code:'WELCOME20',disc:'20%',type:'Percentage',uses:'567/1000',active:true},{code:'FREESHIP',disc:'$4.99',type:'Fixed',uses:'890/2000',active:true},{code:'SUMMER25',disc:'25%',type:'Percentage',uses:'0/3000',active:false}].map(c=>`
+          <div class="rounded-2xl overflow-hidden" style="background:var(--card);border:1px solid var(--border)">
+            <div class="p-5" style="background:${c.active?'linear-gradient(135deg,#E8553A,#F06B48)':'var(--bg)'}">
+              <p class="font-display font-bold text-2xl text-white">${c.code}</p>
+              <p class="text-white/80 text-sm mt-1">${c.disc} off — ${c.type}</p>
+            </div>
+            <div class="p-4 flex items-center justify-between">
+              <span class="text-xs" style="color:var(--text-muted)">${c.uses} used</span>
+              <span class="text-xs font-medium px-2 py-0.5 rounded-full ${c.active?'text-mint-600 bg-mint-50 dark:bg-mint-900/20':'text-red-500 bg-red-50 dark:bg-red-900/20'}">${c.active?'Active':'Inactive'}</span>
+            </div>
+          </div>`).join('')}
+        </div>`;
+      default: return '';
+    }
+  };
+  return `<div class="max-w-7xl mx-auto px-4 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div><h1 class="font-display font-bold text-2xl" style="color:var(--text)">Admin Dashboard</h1><p class="text-sm mt-1" style="color:var(--text-muted)">Manage your store</p></div>
+      <button onclick="navigate('account')" class="btn-outline text-sm py-2 px-4 flex items-center gap-2"><i data-lucide="arrow-left" class="w-4 h-4"></i>Back to Account</button>
+    </div>
+    <div class="flex gap-1 overflow-x-auto hide-scrollbar mb-6 pb-1">
+      ${tabs.map(t=>`<button onclick="S.adminTab='${t.id}';renderPage()" class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${S.adminTab===t.id?'text-white':'hover:bg-elevated dark:hover:bg-elevated-dark'}" style="${S.adminTab===t.id?'background:var(--accent)':'color:var(--text-muted)'}"><i data-lucide="${t.icon}" class="w-4 h-4"></i>${t.t}</button>`).join('')}
+    </div>
+    ${content()}
+  </div>`;
+}
+
+// ===== CHARTS =====
+function initCharts() {
+  const isDark = S.dark;
+  const gridColor = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
+  const textColor = isDark ? '#9CA3AF' : '#6B7280';
+  // Revenue Chart
+  const rc = $('#revenueChart');
+  if (rc) {
+    new Chart(rc, {
+      type: 'line',
+      data: {
+        labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+        datasets: [{
+          label: 'Revenue',
+          data: [8200,9400,7800,11200,13600,12100,15400,14200,16800,18200,16400,19500],
+          borderColor: '#E8553A',
+          backgroundColor: 'rgba(232,85,58,.1)',
+          fill: true,
+          tension: 0.4,
+          borderWidth: 2.5,
+          pointRadius: 0,
+          pointHoverRadius: 6,
+          pointHoverBackgroundColor: '#E8553A',
+          pointHoverBorderColor: '#fff',
+          pointHoverBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: textColor, font: { size: 11 } } },
+          y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 11 }, callback: v => '$' + (v/1000) + 'k' } }
+        },
+        interaction: { intersect: false, mode: 'index' }
+      }
+    });
+  }
+  // Category Chart
+  const cc = $('#categoryChart');
+  if (cc) {
+    new Chart(cc, {
+      type: 'doughnut',
+      data: {
+        labels: ['Electronics','Fashion','Home','Beauty','Sports'],
+        datasets: [{
+          data: [35, 25, 18, 14, 8],
+          backgroundColor: ['#E8553A','#2DD4A8','#FBBF24','#8B5CF6','#3B82F6'],
+          borderWidth: 0,
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: { position: 'bottom', labels: { color: textColor, font: { size: 11 }, padding: 12, usePointStyle: true, pointStyleWidth: 8 } }
+        }
+      }
+    });
+  }
+}
+
+// ===== SCROLL REVEAL =====
+function initReveal() {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  $$('.reveal').forEach(el => obs.observe(el));
+}
+
+// ===== FLASH SALE TIMER =====
+function startFlashTimer() {
+  const end = new Date();
+  end.setHours(end.getHours() + 8, end.getMinutes() + 42, end.getSeconds() + 15);
+  function tick() {
+    const diff = Math.max(0, end - new Date());
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    const fh = $('#flash-h'), fm = $('#flash-m'), fs = $('#flash-s');
+    if (fh) fh.textContent = String(h).padStart(2, '0');
+    if (fm) fm.textContent = String(m).padStart(2, '0');
+    if (fs) fs.textContent = String(s).padStart(2, '0');
+    requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+// ===== KEYBOARD SHORTCUTS =====
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeSearch(); closeAuth(); closeCartDrawer(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openSearch(); }
+});
+
+// ===== INIT =====
+function init() {
+  loadDark();
+  loadCart();
+  loadWishlist();
+  renderHeader();
+  renderMobileNav();
+  renderPage();
+  updateCartBadge();
+  startFlashTimer();
+}
+init();
+</script>
+</body>
+</html>
