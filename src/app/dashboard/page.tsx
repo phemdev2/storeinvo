@@ -100,7 +100,12 @@ const LIGHT = {
   blue:       '#2563eb',
 } as const;
 
-type Theme = typeof DARK;
+type Theme = {
+  bg: string; bgCard: string; bgDeep: string; bgHover: string; border: string;
+  text: string; textMid: string; textMute: string;
+  accent: string; accentText: string;
+  green: string; amber: string; red: string; blue: string;
+};
 
 // ─── Nav config ──────────────────────────────────────────────────────────────
 
