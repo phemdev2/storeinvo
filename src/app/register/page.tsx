@@ -18,7 +18,7 @@ const LIGHT = {
   accent: '#9f7830', accentText: '#ffffff', green: '#059669', amber: '#d97706', red: '#dc2626', blue: '#2563eb',
 } as const;
 
-type Theme = typeof DARK;
+type Theme = typeof DARK | typeof LIGHT;
 const STEPS = ['Your details', 'Your company', 'Your branch'];
 
 export default function RegisterPage() {
