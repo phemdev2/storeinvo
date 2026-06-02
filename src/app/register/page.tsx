@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/useAuthStore';
 
-// ─── Theme (same as dashboard/login) ─────────────────────────────────────────
 const DARK = {
-  bg: '#0c0c0c', bgCard: '#131313', bgDeep: '#090909', bgHover: '#1a1a1a',
-  border: '#1f1f1f', text: '#e9e5dd', textMid: '#8a8680', textMute: '#525050',
-  accent: '#c9a84c', accentText: '#0c0c0c', green: '#7c9a8c', amber: '#a87c4f', red: '#a84c6b', blue: '#6b8caf',
+  bg: '#0c0c0c', bgCard: '#131313', bgDeep: '#090909', bgHover: '#1a',
+  border: '#1f', text: '#e9e5dd', textMid: '#8a8680', textMute: '#525050',
+  accent: '#c9a84c', accentText: '#0c', green: '#7c9a8c', amber: '#a87c4f', red: '#a84c6b', blue: '#6b8caf',
 } as const;
 
 const LIGHT = {
@@ -39,12 +38,21 @@ export default function RegisterPage() {
   const [companyName, setCompanyName] = useState('');
   const [branchName, setBranchName] = useState('');
 
-  // theme persistence
+  // ✅ FIX: window only in useEffect (client-side)
   useEffect(() => {
     const saved = localStorage.getItem('nm-theme');
-    setIsDark(saved? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (saved) {
+      setIsDark(saved === 'dark');
+    } else if (typeof window!== 'undefined') {
+      setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
   }, []);
-  useEffect(() => { localStorage.setItem('nm-theme', isDark? 'dark' : 'light'); }, [isDark]);
+
+  useEffect(() => {
+    if (typeof window!== 'undefined') {
+      localStorage.setItem('nm-theme', isDark? 'dark' : 'light');
+    }
+  }, [isDark]);
 
   const validateStep = () => {
     if (step === 0) {
@@ -71,6 +79,7 @@ export default function RegisterPage() {
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap');
     * { box-sizing: border-box; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 640px) {.hide-mobile { display: none!important; } }
   `;
 
   const inputStyle: React.CSSProperties = {
@@ -82,7 +91,6 @@ export default function RegisterPage() {
     <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', fontFamily: '"DM Sans", sans-serif', color: T.text }}>
       <style>{globalCSS}</style>
 
-      {/* ── Left panel ── */}
       <div className="hidden lg:flex" style={{ width: 420, flexShrink: 0, background: isDark? T.bgCard : '#0d1f3c', flexDirection: 'column', justifyContent: 'space-between', padding: 40, borderRight: `1px solid ${T.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: 10, background: `linear-gradient(135deg, ${T.accent}, #a87c4f)`, display: 'grid', placeItems: 'center' }}>
@@ -90,48 +98,30 @@ export default function RegisterPage() {
           </div>
           <span style={{ color: isDark? T.text : 'white', fontWeight: 700, fontSize: 18 }}>NovaMart</span>
         </div>
-
         <div>
-          <h2 style={{ color: isDark? T.text : 'white', fontSize: 26, fontWeight: 700, lineHeight: 1.2, marginBottom: 8, fontFamily: '"Cormorant Garamond", serif' }}>
-            Set up your store<br/>in under 2 minutes.
-          </h2>
+          <h2 style={{ color: isDark? T.text : 'white', fontSize: 26, fontWeight: 700, lineHeight: 1.2, marginBottom: 8, fontFamily: '"Cormorant Garamond", serif' }}>Set up your store<br/>in under 2 minutes.</h2>
           <p style={{ color: T.textMid, fontSize: 14 }}>Join hundreds of Nigerian businesses selling smarter.</p>
-          <ul style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {[
-              { icon: '⚡', text: 'Fast, intuitive point-of-sale' },
-              { icon: '🏬', text: 'Multi-branch management' },
-              { icon: '📶', text: 'Works offline too' },
-              { icon: '🔒', text: 'Secure and private' },
-            ].map(f => (
-              <li key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: `${T.accent}18`, display: 'grid', placeItems: 'center', fontSize: 12 }}>{f.icon}</div>
-                <span style={{ color: T.textMid, fontSize: 13 }}>{f.text}</span>
-              </li>
-            ))}
-          </ul>
         </div>
-
         <div style={{ background: `${T.accent}0f`, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
           <p style={{ color: T.textMid, fontSize: 12, lineHeight: 1.5, marginBottom: 8 }}>"We set up NovaMart for 3 branches in one afternoon."</p>
           <div style={{ fontSize: 11, color: T.textMute }}>— Amara O., Fashion store, Lagos</div>
         </div>
       </div>
 
-      {/* ── Right panel ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, position: 'relative' }}>
         <button onClick={() => setIsDark(v =>!v)} type="button" style={{ position: 'absolute', top: 20, right: 20, width: 36, height: 36, borderRadius: 10, background: T.bgCard, border: `1px solid ${T.border}`, color: T.textMid, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
           {isDark? '☀' : '🌙'}
         </button>
 
         <div style={{ width: '100%', maxWidth: 420 }}>
-          {/* Steps */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
             {STEPS.map((s, i) => (
               <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
                 <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 700, background: i < step? T.green : i === step? T.accent : T.bgDeep, color: i <= step? T.accentText : T.textMute, border: `1px solid ${i === step? T.accent : T.border}` }}>
                   {i < step? '✓' : i + 1}
                 </div>
-                <span style={{ fontSize: 12, color: i === step? T.text : T.textMute, display: window.innerWidth < 640? 'none' : 'block' }}>{s}</span>
+                {/* ✅ FIXED: removed window.innerWidth, using CSS class instead */}
+                <span className="hide-mobile" style={{ fontSize: 12, color: i === step? T.text : T.textMute }}>{s}</span>
                 {i < 2 && <div style={{ flex: 1, height: 2, background: i < step? T.green : T.border, margin: '0 8px', borderRadius: 2 }} />}
               </div>
             ))}
