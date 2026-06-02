@@ -18,6 +18,7 @@ interface ProductWithMeta {
   b?: string;
   p?: number;
   s?: number;
+  c?: string;    
   cost?: number;
   is_var?: boolean;
   v?: { id: number | string; n: string; q?: number; p?: number | string }[];
@@ -226,13 +227,18 @@ export default function ProductCrudModal() {
   const nextId = useRef(1);
   const uid = () => `new-${Date.now()}-${nextId.current++}`;
 
-  useEffect(() => {
+ useEffect(() => {
     if (!crudModalOpen) return;
     if (editingProduct) {
-      setName(editingProduct.n || ''); setBarcode(editingProduct.b || ''); setPrice(editingProduct.p!= null? String(editingProduct.p) : '');
-      setCost(editingProduct.cost!= null? String(editingProduct.cost) : ''); setStock(editingProduct.s!= null? String(editingProduct.s) : '');
-      setCategory(editingProduct.category || ''); setIsVariable(editingProduct.is_var || false); setImageUrl(editingProduct.image_url || null);
-      setVariants(editingProduct.v?.length? editingProduct.v.map((v) => ({ id: v.id, n: v.n || '', q: v.q || 1, p: v.p!= null? String(v.p) : '' })) : [{ id: uid(), n: '', q: 1, p: '' }]);
+      setName(editingProduct.n || ''); 
+      setBarcode(editingProduct.b || ''); 
+      setPrice(editingProduct.p != null ? String(editingProduct.p) : '');
+      setCost(editingProduct.cost != null ? String(editingProduct.cost) : ''); 
+      setStock(editingProduct.s != null ? String(editingProduct.s) : '');
+      setCategory(editingProduct.c || ''); // 👈 CHANGE .category to .c
+      setIsVariable(editingProduct.is_var || false); 
+      setImageUrl(editingProduct.image_url || null);
+      setVariants(editingProduct.v?.length ? editingProduct.v.map((v) => ({ id: v.id, n: v.n || '', q: v.q || 1, p: v.p != null ? String(v.p) : '' })) : [{ id: uid(), n: '', q: 1, p: '' }]);
     } else {
       setName(''); setBarcode(''); setPrice(''); setCost(''); setStock(''); setCategory(''); setIsVariable(false); setImageUrl(null); setVariants([{ id: uid(), n: '', q: 1, p: '' }]);
     }

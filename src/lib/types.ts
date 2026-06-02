@@ -18,13 +18,19 @@ export interface Variant {
 export interface Product {
   id: string | number;
   n: string;
-  b: string;
+   c?: string;  
+  b?: string | null;
   p: number;
   s: number;
   v: Variant[];
   is_var?: boolean;
   cost?: number;
-  image_url?: string; // ✅ ADDED: Product image
+  image_url?: string | null; 
+   desc?: string; 
+     badge?: string | null;
+  rating?: number;
+  reviews?: number;
+  original_price?: number | null;
 }
 
 // ── Cart & Order Types ────────────────────────────
@@ -58,6 +64,14 @@ export interface Order {
   user_name: string;
   customer_name?: string | null;
   customer_phone?: string | null;
+}
+
+
+export interface Category {
+  id: string;
+  name: string;
+  slug?: string;
+  image_url?: string;
 }
 
 // ── Database Direct Mapping Types ─────────────────

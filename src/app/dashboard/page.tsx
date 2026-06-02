@@ -187,6 +187,7 @@ export default function NovaMartDashboard() {
   // ── Dashboard data ──
   useEffect(() => {
     if (!activeBranchId) return;
+    let cancelled = false;
 
     const load = async () => {
       setLoading(true);
@@ -211,6 +212,8 @@ export default function NovaMartDashboard() {
             .limit(10),
         ]);
 
+        if (cancelled) return;
+
         const queryResults = [
           { name: 'salesToday',   res: salesTodayRes },
           { name: 'productCount', res: productCountRes },
@@ -225,7 +228,7 @@ export default function NovaMartDashboard() {
         }
 
         setStats({
-          revenue:  salesTodayRes.data?.reduce((acc, x) => acc + (x.total ?? 0), 0) ?? 0,
+          revenue:  salesTodayRes.data?.reduce((acc, x) => acc + (Number(x.total) || 0), 0) ?? 0,
           sales:    salesTodayRes.data?.length ?? 0,
           products: productCountRes.count ?? 0,
           lowStock: lowStockRes.data?.length ?? 0,
@@ -237,11 +240,12 @@ export default function NovaMartDashboard() {
         console.error('[Dashboard] Load error:', msg);
         showToast('Failed to load data');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     load();
+    return () => { cancelled = true; };
   }, [activeBranchId]);
 
   // ── Derived ──
@@ -249,12 +253,12 @@ export default function NovaMartDashboard() {
     if (!search.trim()) return products;
     const q = search.toLowerCase();
     return products.filter(p =>
-      p.n?.toLowerCase().includes(q) || (p.c ?? '').toLowerCase().includes(q)
+      (p.n || '').toLowerCase().includes(q) || (p.c || '').toLowerCase().includes(q)
     );
   }, [products, search]);
 
-  const lowStockItems  = useMemo(() => products.filter(p => p.s > 0 && p.s <= 5), [products]);
-  const outOfStockItems = useMemo(() => products.filter(p => p.s === 0), [products]);
+  const lowStockItems  = useMemo(() => products.filter(p => (p.s ?? 0) > 0 && (p.s ?? 0) <= 5), [products]);
+  const outOfStockItems = useMemo(() => products.filter(p => (p.s ?? 0) === 0), [products]);
 
   // ── Actions ──
   const showToast = useCallback((msg: string) => {
@@ -265,17 +269,14 @@ export default function NovaMartDashboard() {
 
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
-  const deleteProduct = useCallback(async (id: string, name: string) => {
-    if (!confirm(`Delete "${name}"?`)) return;
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', id)
-      .eq('branch_id', activeBranchId);
+ const deleteProduct = useCallback(async (id: string | number, name: string) => {
+    if (!confirm(`Delete ${name}?`)) return;
+    
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    
     if (error) {
-      showToast('Delete failed');
+      showToast('Error deleting product');
     } else {
-      fetchProducts(activeBranchId!);
       showToast('Product deleted');
     }
   }, [activeBranchId, fetchProducts, showToast]);
@@ -283,7 +284,6 @@ export default function NovaMartDashboard() {
   // ─── Global styles ────────────────────────────────────────────────────────
 
   const globalCSS = `
-    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap');
     @keyframes spin    { to { transform: rotate(360deg); } }
     @keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:.45; } }
     @keyframes fadeUp  { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
@@ -392,7 +392,7 @@ export default function NovaMartDashboard() {
               { label: 'New Sale',    icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z', action: () => router.push('/pos') },
               { label: 'View Reports', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', action: () => setSection('analytics') },
             ].map(({ label, icon, action }) => (
-              <button key={label} onClick={action}
+              <button key={label} onClick={action} type="button"
                 style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%',
                   padding: '10px 12px', background: T.bgDeep, border: `1px solid ${T.border}`,
                   borderRadius: 8, color: T.text, fontSize: 13, cursor: 'pointer',
@@ -412,7 +412,7 @@ export default function NovaMartDashboard() {
             marginBottom: 12 }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, fontFamily: '"Cormorant Garamond", serif',
               color: T.text }}>Recent Sales</h3>
-            <button onClick={() => setSection('sales')}
+            <button onClick={() => setSection('sales')} type="button"
               style={{ fontSize: 11, color: T.accent, background: 'none', border: 'none',
                 cursor: 'pointer', fontWeight: 500 }}>
               View all
@@ -581,10 +581,10 @@ export default function NovaMartDashboard() {
 
   const renderInventory = () => {
     const inventoryStats = [
-      { label: 'In Stock',     value: products.filter(p => p.s > 5).length,                  color: T.green },
+      { label: 'In Stock',     value: products.filter(p => (p.s ?? 0) > 5).length,                  color: T.green },
       { label: 'Low Stock',    value: lowStockItems.length,                                   color: T.amber },
       { label: 'Out of Stock', value: outOfStockItems.length,                                 color: T.red   },
-      { label: 'Total Value',  value: fmt(products.reduce((sum, p) => sum + p.p * p.s, 0)),  color: T.accent },
+      { label: 'Total Value',  value: fmt(products.reduce((sum, p) => sum + (p.p ?? 0) * (p.s ?? 0), 0)),  color: T.accent },
     ];
 
     return (
@@ -612,7 +612,7 @@ export default function NovaMartDashboard() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 28, height: 28, borderRadius: 6, background: T.bgCard,
                     display: 'grid', placeItems: 'center', fontSize: 12, color: T.textMid }}>
-                    {p.n[0]}
+                    {p.n?.[0] ?? '?'}
                   </div>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{p.n}</div>
@@ -625,7 +625,7 @@ export default function NovaMartDashboard() {
                     color={p.s === 0 ? T.red : T.amber}
                     bg={p.s === 0 ? `${T.red}18` : `${T.amber}18`}
                   />
-                  <button onClick={() => openCrudModal(p)}
+                  <button onClick={() => openCrudModal(p)} type="button"
                     style={{ fontSize: 11, color: T.accent, background: 'none',
                       border: 'none', cursor: 'pointer', fontWeight: 500 }}>
                     Restock
@@ -714,7 +714,7 @@ export default function NovaMartDashboard() {
             style={{ padding: '8px 12px', background: T.bgCard, border: `1px solid ${T.border}`,
               borderRadius: 8, color: T.text, fontSize: 13, width: 200, outline: 'none' }}
           />
-          <button onClick={() => openCrudModal()}
+          <button onClick={() => openCrudModal()} type="button"
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
               background: T.accent, color: T.accentText, border: 'none', borderRadius: 8,
               fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
@@ -746,7 +746,7 @@ export default function NovaMartDashboard() {
                         display: 'grid', placeItems: 'center', overflow: 'hidden', flexShrink: 0 }}>
                         {p.image_url
                           ? <img src={p.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          : <span style={{ fontSize: 14, color: T.textMid }}>{p.n?.[0]}</span>
+                          : <span style={{ fontSize: 14, color: T.textMid }}>{p.n?.[0] ?? '?'}</span>
                         }
                       </div>
                       <div>
@@ -759,23 +759,23 @@ export default function NovaMartDashboard() {
                   </td>
                   <td style={{ ...tableCell, color: T.textMid }}>{p.c || '—'}</td>
                   <td style={{ ...tableCell, fontWeight: 500, fontFamily: '"Cormorant Garamond", serif' }}>
-                    {fmt(p.p)}
+                    {fmt(p.p ?? 0)}
                   </td>
                   <td style={tableCell}>
                     <Badge
-                      label={String(p.s)}
-                      color={p.s === 0 ? T.red : p.s <= 5 ? T.amber : T.green}
-                      bg={p.s === 0 ? `${T.red}14` : p.s <= 5 ? `${T.amber}14` : `${T.green}14`}
+                      label={String(p.s ?? 0)}
+                      color={(p.s ?? 0) === 0 ? T.red : (p.s ?? 0) <= 5 ? T.amber : T.green}
+                      bg={(p.s ?? 0) === 0 ? `${T.red}14` : (p.s ?? 0) <= 5 ? `${T.amber}14` : `${T.green}14`}
                     />
                   </td>
                   <td style={tableCell}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      <button onClick={() => openCrudModal(p)}
+                      <button onClick={() => openCrudModal(p)} type="button"
                         style={{ padding: '5px 10px', background: 'none', border: `1px solid ${T.border}`,
                           borderRadius: 6, fontSize: 11, color: T.textMid, cursor: 'pointer' }}>
                         Edit
                       </button>
-                      <button onClick={() => deleteProduct(p.id, p.n)}
+                      <button onClick={() => deleteProduct(p.id, p.n)} type="button"
                         style={{ padding: '5px 10px', background: 'none', border: `1px solid ${T.border}`,
                           borderRadius: 6, fontSize: 11, color: T.red, cursor: 'pointer' }}>
                         Delete
@@ -793,7 +793,7 @@ export default function NovaMartDashboard() {
                 {search ? 'No products found' : 'No products yet'}
               </p>
               {!search && (
-                <button onClick={() => openCrudModal()}
+                <button onClick={() => openCrudModal()} type="button"
                   style={{ fontSize: 13, color: T.accent, background: 'none',
                     border: 'none', cursor: 'pointer', fontWeight: 500 }}>
                   Add your first product →
@@ -806,7 +806,7 @@ export default function NovaMartDashboard() {
     </div>
   );
 
-  const SECTIONS: Record<Section, () => JSX.Element> = {
+  const SECTIONS: Record<Section, () => React.ReactNode> = {
     dashboard: renderDashboard,
     analytics:  renderAnalytics,
     sales:      renderSales,
@@ -835,13 +835,13 @@ export default function NovaMartDashboard() {
 
             {/* Left: hamburger + logo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <button onClick={() => setSidebarOpen(true)} aria-label="Open menu"
+              <button onClick={() => setSidebarOpen(true)} aria-label="Open menu" type="button"
                 style={{ background: 'none', border: 'none', color: T.textMid,
                   cursor: 'pointer', padding: 6, borderRadius: 6, display: 'grid', placeItems: 'center' }}>
                 <Icon d="M4 6h16M4 12h16M4 18h16" size={20} />
               </button>
 
-              <button onClick={() => setSection('dashboard')}
+              <button onClick={() => setSection('dashboard')} type="button"
                 style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none',
                   border: 'none', cursor: 'pointer', padding: 0 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 8, display: 'grid',
@@ -862,7 +862,7 @@ export default function NovaMartDashboard() {
               {NAV.map(({ id, label, d }) => {
                 const active = section === id;
                 return (
-                  <button key={id} onClick={() => setSection(id)} aria-label={label}
+                  <button key={id} onClick={() => setSection(id)} aria-label={label} type="button"
                     style={{ display: 'flex', alignItems: 'center', gap: 6,
                       padding: '7px 13px', borderRadius: 8,
                       background: active ? T.accent : 'transparent',
@@ -880,13 +880,13 @@ export default function NovaMartDashboard() {
 
             {/* Right: controls */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button onClick={() => setIsDark(v => !v)} aria-label="Toggle theme"
+              <button onClick={() => setIsDark(v => !v)} aria-label="Toggle theme" type="button"
                 style={{ width: 34, height: 34, borderRadius: 8, background: 'none',
                   border: `1px solid ${T.border}`, color: T.textMid,
                   display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 14 }}>
                 {isDark ? '☀' : '🌙'}
               </button>
-              <button onClick={() => router.push('/pos')}
+              <button onClick={() => router.push('/pos')} type="button"
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px',
                   background: T.accent, color: T.accentText, border: 'none',
                   borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>

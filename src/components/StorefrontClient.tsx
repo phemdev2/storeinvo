@@ -7,10 +7,19 @@ import {
   ShoppingCart, Heart, User, Search, Menu, X, Star, 
   Truck, ShieldCheck, RefreshCw, ChevronRight, Package 
 } from 'lucide-react';
-import type { Product, Category } from '@/app/page';
+import { Product, Category, CURRENCY } from '@/lib/types';
+
+interface StorefrontCategory {
+  id: string;
+  name: string;
+  slug?: string;
+  image_url?: string;
+  icon?: string;
+  count?: number;
+}
 
 // Fallback data if DB is empty
-const fallbackCategories = [
+const fallbackCategories: StorefrontCategory[] = [
   { id: '1', name: 'Electronics', icon: '💻', count: 120 },
   { id: '2', name: 'Fashion', icon: '👗', count: 85 },
   { id: '3', name: 'Home', icon: '🛋️', count: 64 },
@@ -28,10 +37,14 @@ export default function StorefrontClient({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const displayCategories = categories.length > 0 ? categories : fallbackCategories;
+  // ✅ Cast to StorefrontCategory so TypeScript recognizes `icon` and `count`
+  const displayCategories: StorefrontCategory[] = categories.length > 0 
+    ? categories as StorefrontCategory[] 
+    : fallbackCategories;
 
-  const toggleWishlist = (id: string) => {
-    setWishlist(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  const toggleWishlist = (id: string | number) => {
+    const stringId = String(id);
+    setWishlist(prev => prev.includes(stringId) ? prev.filter(i => i !== stringId) : [...prev, stringId]);
   };
 
   const addToCart = () => {
@@ -156,7 +169,7 @@ export default function StorefrontClient({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
             {[
-              { icon: Truck, title: 'Free Shipping', desc: 'On orders over $50' },
+              { icon: Truck, title: 'Free Shipping', desc: 'On orders over ₦50,000' },
               { icon: ShieldCheck, title: 'Secure Payment', desc: '100% protected' },
               { icon: RefreshCw, title: 'Easy Returns', desc: '30-day return policy' },
               { icon: Star, title: '24/7 Support', desc: 'Dedicated assistance' },
@@ -188,10 +201,10 @@ export default function StorefrontClient({
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
             {displayCategories.map((cat) => (
               <button key={cat.id} className="group bg-white border border-slate-100 rounded-2xl p-6 flex flex-col items-center gap-3 hover:border-slate-900 transition-all duration-300 hover:shadow-lg">
-                <span className="text-4xl group-hover:scale-110 transition-transform duration-300">{cat.icon}</span>
+                <span className="text-4xl group-hover:scale-110 transition-transform duration-300">{cat.icon || '📦'}</span>
                 <div className="text-center">
                   <h3 className="font-bold text-sm text-slate-900">{cat.name}</h3>
-                  <p className="text-xs text-slate-400 mt-1">{cat.count} items</p>
+                  <p className="text-xs text-slate-400 mt-1">{cat.count ?? 0} items</p>
                 </div>
               </button>
             ))}
@@ -216,13 +229,19 @@ export default function StorefrontClient({
                 
                 {/* Image Area - Next.js Image used here for DB URLs */}
                 <div className="relative aspect-square bg-slate-100 overflow-hidden">
-                  <Image 
-                    src={product.image_url}
-                    alt={product.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  />
+                  {product.image_url ? (
+                    <Image 
+                      src={product.image_url}
+                      alt={product.n}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                      <Package className="w-12 h-12" />
+                    </div>
+                  )}
                   
                   {product.badge && (
                     <span className={`absolute top-3 left-3 px-2.5 py-1 text-[10px] font-bold rounded-full ${
@@ -238,10 +257,10 @@ export default function StorefrontClient({
                     <button 
                       onClick={() => toggleWishlist(product.id)}
                       className={`p-2 rounded-xl shadow-md transition-colors ${
-                        wishlist.includes(product.id) ? 'bg-rose-500 text-white' : 'bg-white text-slate-600 hover:text-rose-500'
+                        wishlist.includes(String(product.id)) ? 'bg-rose-500 text-white' : 'bg-white text-slate-600 hover:text-rose-500'
                       }`}
                     >
-                      <Heart className={`w-4 h-4 ${wishlist.includes(product.id) ? 'fill-current' : ''}`} />
+                      <Heart className={`w-4 h-4 ${wishlist.includes(String(product.id)) ? 'fill-current' : ''}`} />
                     </button>
                   </div>
 
@@ -257,26 +276,28 @@ export default function StorefrontClient({
 
                 {/* Details Area */}
                 <div className="p-4 flex-1 flex flex-col">
-                  <span className="text-[10px] font-medium text-indigo-600 mb-1 uppercase tracking-wider">{product.category}</span>
-                  <h3 className="font-bold text-slate-900 text-sm mb-2 line-clamp-2 leading-tight">{product.name}</h3>
+                  <span className="text-[10px] font-medium text-indigo-600 mb-1 uppercase tracking-wider">
+                    {product.c || product.b || 'General'}
+                  </span>
+                  <h3 className="font-bold text-slate-900 text-sm mb-2 line-clamp-2 leading-tight">{product.n}</h3>
                   
                   <div className="flex items-center gap-1 mb-3">
                     <div className="flex text-amber-400">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`w-3 h-3 ${i < Math.floor(product.rating) ? 'fill-current' : ''}`} />
+                        <Star key={i} className={`w-3 h-3 ${i < Math.floor(product.rating ?? 0) ? 'fill-current' : ''}`} />
                       ))}
                     </div>
-                    <span className="text-[10px] text-slate-500 ml-1">({product.reviews})</span>
+                    <span className="text-[10px] text-slate-500 ml-1">({product.reviews ?? 0})</span>
                   </div>
 
                   <div className="mt-auto flex items-center gap-2">
-                    <span className="text-base font-extrabold text-slate-900">${product.price.toFixed(2)}</span>
+                    <span className="text-base font-extrabold text-slate-900">₦{CURRENCY.format(product.p)}</span>
                     {product.original_price && (
-                      <span className="text-xs text-slate-400 line-through">${product.original_price.toFixed(2)}</span>
+                      <span className="text-xs text-slate-400 line-through">₦{CURRENCY.format(product.original_price)}</span>
                     )}
                     {product.original_price && (
                       <span className="ml-auto text-[10px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-md">
-                        -{Math.round((1 - product.price / product.original_price) * 100)}%
+                        -{Math.round((1 - product.p / product.original_price) * 100)}%
                       </span>
                     )}
                   </div>
@@ -293,12 +314,6 @@ export default function StorefrontClient({
           )}
         </div>
       </section>
-
-      {/* ── Newsletter ── */}
-      {/* ... (Newsletter section remains the same) ... */}
-
-      {/* ── Footer ── */}
-      {/* ... (Footer section remains the same) ... */}
 
       <style jsx>{`
         @keyframes slideDown {

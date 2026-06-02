@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePosStore } from '@/store/usePosStore';
 import { useCompanyStore } from '@/store/useCompanyStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { CURRENCY } from '@/lib/types';
+import { CURRENCY, CartItem, Product } from '@/lib/types';
 
 export default function ReceiptModal() {
   const receipt = usePosStore((s) => s.currentReceipt);
@@ -204,7 +204,8 @@ function DashedLine() {
   return <div className="my-2 border-b border-dashed border-gray-400" />;
 }
 
-function ReceiptItem({ item }: { item: { n: string; p: number; qty: number; v_name?: string } }) {
+// Use the imported CartItem type directly
+function ReceiptItem({ item }: { item: CartItem }) {
   return (
     <div>
       <div className="flex justify-between font-bold">

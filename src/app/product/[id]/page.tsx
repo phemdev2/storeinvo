@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { usePosStore } from '@/store/usePosStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { supabase } from '@/lib/supabase';
-import { Product, CURRENCY } from '@/lib/types';
+import { Product, Variant, CartItem, CURRENCY } from '@/lib/types';
 
 type ProductVariant = NonNullable<Product['v']>[number];
 
@@ -72,7 +72,7 @@ export default function ProductDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<Variant | undefined>(undefined);
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
 
@@ -148,10 +148,10 @@ export default function ProductDetailPage() {
     return selectedVariant?.p || product.p;
   }, [product, selectedVariant]);
 
-  const currentStock = useMemo(() => {
+    const currentStock = useMemo(() => {
     if (!product) return 0;
-    return selectedVariant?.s !== undefined ? selectedVariant.s : product.s;
-  }, [product, selectedVariant]);
+    return product.s; // Variants share the parent product's stock
+  }, [product]);
 
   const relatedProducts = useMemo(() => {
     if (!product) return [];
@@ -159,9 +159,9 @@ export default function ProductDetailPage() {
   }, [products, product]);
 
   const handleVariantChange = useCallback(
-    (variant: ProductVariant) => {
+        (variant: ProductVariant) => {
       setSelectedVariant(variant);
-      const variantStock = variant.s !== undefined ? variant.s : product?.s ?? 0;
+      const variantStock = product?.s ?? 0; // Variants share the parent product's stock
       setQuantity((q) => Math.min(q, Math.max(1, variantStock)));
     },
     [product]
@@ -176,7 +176,7 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = useCallback(() => {
     if (!product) return;
-    addToCart(product, selectedVariant, quantity);
+   addToCart(product, selectedVariant ?? undefined, quantity);
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
   }, [product, selectedVariant, quantity, addToCart]);
@@ -290,7 +290,7 @@ export default function ProductDetailPage() {
                   <div className="flex flex-wrap gap-2">
                     {product.v.map((variant) => {
                       const isSelected = selectedVariant?.id === variant.id;
-                      const variantStock = variant.s !== undefined ? variant.s : product.s;
+                        const variantStock = product.s;
                       const isVariantOOS = variantStock === 0;
 
                       return (

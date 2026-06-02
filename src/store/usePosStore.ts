@@ -142,6 +142,7 @@ export const usePosStore = create<POSState>()(
             s: item.stock,
             image_url: item.image_url || null,
             cost: item.cost || 0,
+            desc: item.description || null,
             is_var: item.is_variable_price || (item.variants?.length > 0),
             v: item.variants?.map((variant: any) => ({
               id: variant.id,
@@ -199,9 +200,9 @@ export const usePosStore = create<POSState>()(
           items[key].qty += 1;
         } else {
           items[key] = {
-            id: p.id, n: p.n, b: p.b, p: finalPrice,
-            v_name: v ? v.n : null, vid: v ? String(v.id) : null, qty: 1,
-          };
+  id: p.id, n: p.n, b: p.b ?? '', p: finalPrice,
+  v_name: v ? v.n : null, vid: v ? String(v.id) : null, qty: 1,
+};
         }
 
         if (items[key].qty === 0) delete items[key];

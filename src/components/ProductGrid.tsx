@@ -3,27 +3,8 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { usePosStore } from '@/store/usePosStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { CURRENCY } from '@/lib/types';
+import { Product, CURRENCY } from '@/lib/types'; // 👈 Import Product from central types
 import PricePromptModal from './PricePromptModal';
-
-// --- Type Definitions ---
-interface Variant {
-  id: string | number;
-  n: string;
-  q: number;
-  p: number;
-}
-
-interface Product {
-  id: string | number;
-  n: string;
-  p: number;
-  b?: string;
-  s: number;
-  v?: Variant[];
-  is_var?: boolean;
-  [key: string]: any; // Allow for extended properties like image_url, category
-}
 
 // --- Custom Hook for Responsive Breakpoints (Debounced) ---
 function useIsMobile(breakpoint = 768) {
