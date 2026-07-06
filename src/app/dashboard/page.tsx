@@ -1154,7 +1154,7 @@ export default function NovaMartDashboard() {
 
               <span className="nm-store-label" style={{ fontSize: 12, color: T.textMid, textAlign: 'right' }}>
                 <span style={{ display: 'block', fontSize: 11, color: T.textMute }}>Store</span>
-                {profile?.branchName ?? 'Main'}
+                {branches?.find(b => b.id === activeBranchId)?.name ?? 'Main'}
               </span>
             </div>
           </div>
