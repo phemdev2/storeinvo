@@ -2,7 +2,22 @@
 
 /**
  * NovaMart Admin Dashboard
- * Rewritten for clarity, consistency, and design quality.
+ * Mobile-first rewrite.
+ *
+ * Mobile-first changes made:
+ *   - Layout is authored for small screens first; desktop styles are added
+ *     back in via `@media (min-width: 768px)` instead of the other way round.
+ *   - Top nav row is removed on phones. A fixed bottom tab bar (thumb-reach)
+ *     drives the 4 most-used sections; the hamburger/Sidebar covers the rest.
+ *   - Tables (Sales / Customers / Products) render as stacked cards on
+ *     phones and switch to full tables at tablet width+ — horizontal-scroll
+ *     tables are a poor mobile pattern.
+ *   - Header shrinks, the "STORE" label collapses to icon-only, and the
+ *     product search input goes full-width on small screens.
+ *   - Stat grid and section grids collapse to 1–2 columns by default and
+ *     open up at wider breakpoints.
+ *   - Bottom padding on <main> accounts for the fixed mobile tab bar so
+ *     content never sits underneath it.
  *
  * External deps (unchanged from v2):
  *   @/store/useAuthStore  → { user, profile, activeBranchId, isLoading, fetchProfile }
@@ -108,21 +123,25 @@ type Theme = {
 };
 
 // ─── Nav config ──────────────────────────────────────────────────────────────
+// The first 4 entries double as the mobile bottom-tab-bar items; keep the
+// most frequently used sections at the front of this list.
 
 const NAV: { id: Section; label: string; d: string }[] = [
   { id: 'dashboard', label: 'Dashboard',
     d: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-  { id: 'analytics', label: 'Analytics',
-    d: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
   { id: 'sales', label: 'Sales',
     d: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
   { id: 'inventory', label: 'Inventory',
     d: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
-  { id: 'customers', label: 'Customers',
-    d: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
   { id: 'products', label: 'Products',
     d: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z' },
+  { id: 'analytics', label: 'Analytics',
+    d: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+  { id: 'customers', label: 'Customers',
+    d: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
 ];
+
+const TAB_BAR_IDS: Section[] = ['dashboard', 'sales', 'inventory', 'products'];
 
 // ─── Small reusable primitives ────────────────────────────────────────────────
 
@@ -134,7 +153,7 @@ const Icon = ({ d, size = 16, stroke, strokeWidth = 2 }: { d: string; size?: num
 );
 
 const Badge = ({ label, color, bg }: { label: string; color: string; bg: string }) => (
-  <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, fontWeight: 500, color, background: bg }}>
+  <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, fontWeight: 500, color, background: bg, whiteSpace: 'nowrap' }}>
     {label}
   </span>
 );
@@ -148,7 +167,7 @@ const Spinner = ({ T }: { T: Theme }) => (
 
 export default function NovaMartDashboard() {
   const router = useRouter();
-  const { user, profile, activeBranchId, isLoading, fetchProfile } = useAuthStore();
+  const { user, profile, activeBranchId, branches, isLoading, fetchProfile } = useAuthStore();
   const { products, fetchProducts, openCrudModal } = usePosStore();
 
   // ── UI state ──
@@ -269,19 +288,21 @@ export default function NovaMartDashboard() {
 
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
- const deleteProduct = useCallback(async (id: string | number, name: string) => {
+  const deleteProduct = useCallback(async (id: string | number, name: string) => {
     if (!confirm(`Delete ${name}?`)) return;
-    
+
     const { error } = await supabase.from('products').delete().eq('id', id);
-    
+
     if (error) {
       showToast('Error deleting product');
     } else {
       showToast('Product deleted');
+      if (activeBranchId) fetchProducts(activeBranchId); // Refresh list
     }
   }, [activeBranchId, fetchProducts, showToast]);
 
-  // ─── Global styles ────────────────────────────────────────────────────────
+  // ─── Global styles (mobile-first: base rules target phones; wider ─────────
+  // breakpoints are added with min-width media queries) ──────────────────────
 
   const globalCSS = `
     @keyframes spin    { to { transform: rotate(360deg); } }
@@ -294,6 +315,136 @@ export default function NovaMartDashboard() {
     ::-webkit-scrollbar-track { background:transparent; }
     button { font-family:inherit; }
     table  { border-collapse:collapse; }
+
+    /* ── App shell ── */
+    .nm-main { padding: 16px; padding-bottom: 84px; }
+    @media (min-width: 768px) {
+      .nm-main { padding: 24px; padding-bottom: 24px; }
+    }
+
+    .nm-header-inner { height: 56px; padding: 0 14px; }
+    @media (min-width: 768px) {
+      .nm-header-inner { height: 62px; padding: 0 24px; }
+    }
+
+    .nm-logo-text { display: none; }
+    @media (min-width: 480px) {
+      .nm-logo-text { display: block; }
+    }
+
+    .nm-store-label { display: none; }
+    @media (min-width: 480px) {
+      .nm-store-label { display: inline; }
+    }
+
+    /* Desktop centered nav row — hidden on phones, the bottom tab bar
+       and Sidebar cover navigation there instead. */
+    .nm-desktop-nav { display: none; }
+    @media (min-width: 768px) {
+      .nm-desktop-nav { display: flex; gap: 2px; }
+    }
+
+    /* Fixed bottom tab bar — thumb-reach nav for phones only. */
+    .nm-tabbar {
+      display: flex;
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 50;
+      background: ${T.bgCard}F5;
+      backdrop-filter: blur(14px);
+      border-top: 1px solid ${T.border};
+      padding: 6px 4px;
+      padding-bottom: max(6px, env(safe-area-inset-bottom));
+    }
+    @media (min-width: 768px) {
+      .nm-tabbar { display: none; }
+    }
+
+    .nm-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 6px 2px;
+      background: none;
+      border: none;
+      font-size: 10.5px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* ── Grids ── */
+    .nm-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    @media (min-width: 560px) {
+      .nm-stat-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+    }
+
+    .nm-section-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 700px) {
+      .nm-section-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    }
+    @media (min-width: 1024px) {
+      .nm-section-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .nm-analytics-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 700px) {
+      .nm-analytics-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    }
+    .nm-analytics-span2 { grid-column: span 1; }
+    @media (min-width: 700px) {
+      .nm-analytics-span2 { grid-column: span 2; }
+    }
+
+    .nm-inventory-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    @media (min-width: 560px) {
+      .nm-inventory-stat-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    }
+
+    /* ── Toolbar (Products section: search + add) ── */
+    .nm-products-toolbar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    @media (min-width: 640px) {
+      .nm-products-toolbar { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+    }
+    .nm-products-actions { display: flex; gap: 8px; }
+    .nm-search-input { width: 100%; }
+    @media (min-width: 640px) {
+      .nm-search-input { width: 200px; }
+    }
+
+    /* ── Table vs. card-list swap ── */
+    /* Phones: hide real tables, show stacked cards instead of a
+       horizontal-scroll table (a poor touch pattern). */
+    .nm-table-wrap { display: none; }
+    .nm-card-list  { display: flex; flex-direction: column; gap: 8px; }
+    @media (min-width: 700px) {
+      .nm-table-wrap { display: block; }
+      .nm-card-list  { display: none; }
+    }
   `;
 
   // ─── Loading screen ────────────────────────────────────────────────────────
@@ -334,29 +485,35 @@ export default function NovaMartDashboard() {
     fontSize: 13,
   };
 
+  const mobileCard: React.CSSProperties = {
+    background: T.bgDeep,
+    border: `1px solid ${T.border}`,
+    borderRadius: 10,
+    padding: 12,
+  };
+
   // ─── Section renderers ─────────────────────────────────────────────────────
 
   const renderDashboard = () => (
     <div style={{ animation: 'fadeUp 0.25s ease' }}>
       {/* Hero */}
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px',
           borderRadius: 20, background: `${T.accent}14`, border: `1px solid ${T.accent}28`,
-          color: T.accent, fontSize: 12, fontWeight: 500, marginBottom: 14 }}>
+          color: T.accent, fontSize: 12, fontWeight: 500, marginBottom: 12 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: T.accent,
             animation: 'pulse 2s infinite' }} />
           Live overview
         </div>
-        <h1 style={{ fontSize: 'clamp(26px, 4vw, 38px)', fontWeight: 300, lineHeight: 1.15,
+        <h1 style={{ fontSize: 'clamp(24px, 6vw, 38px)', fontWeight: 300, lineHeight: 1.15,
           fontFamily: '"Cormorant Garamond", serif', marginBottom: 6, color: T.text }}>
           {greeting()}, {profile?.full_name?.split(' ')[0] || 'Admin'}
         </h1>
-        <p style={{ fontSize: 14, color: T.textMid }}>Here's what's happening in your store today.</p>
+        <p style={{ fontSize: 13, color: T.textMid }}>Here's what's happening in your store today.</p>
       </div>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
-        gap: 12, marginBottom: 20 }}>
+      <div className="nm-stat-grid">
         {[
           { label: "Today's Revenue", value: fmt(stats.revenue), color: T.accent,
             d: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
@@ -367,21 +524,21 @@ export default function NovaMartDashboard() {
           { label: 'Low Stock', value: String(stats.lowStock), color: T.amber,
             d: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
         ].map(({ label, value, color, d }) => (
-          <div key={label} style={{ ...card, padding: 16 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: `${color}14`,
-              display: 'grid', placeItems: 'center', marginBottom: 10 }}>
-              <Icon d={d} size={15} stroke={color} />
+          <div key={label} style={{ ...card, padding: 14 }}>
+            <div style={{ width: 30, height: 30, borderRadius: 8, background: `${color}14`,
+              display: 'grid', placeItems: 'center', marginBottom: 8 }}>
+              <Icon d={d} size={14} stroke={color} />
             </div>
-            <div style={{ fontSize: 11, color: T.textMid, textTransform: 'uppercase',
+            <div style={{ fontSize: 10.5, color: T.textMid, textTransform: 'uppercase',
               letterSpacing: 0.5, marginBottom: 4 }}>{label}</div>
-            <div style={{ fontSize: 26, fontWeight: 600, fontFamily: '"Cormorant Garamond", serif',
+            <div style={{ fontSize: 22, fontWeight: 600, fontFamily: '"Cormorant Garamond", serif',
               color: T.text }}>{loading ? '—' : value}</div>
           </div>
         ))}
       </div>
 
       {/* Lower grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+      <div className="nm-section-grid">
         {/* Quick actions */}
         <div style={card}>
           <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12,
@@ -394,7 +551,7 @@ export default function NovaMartDashboard() {
             ].map(({ label, icon, action }) => (
               <button key={label} onClick={action} type="button"
                 style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                  padding: '10px 12px', background: T.bgDeep, border: `1px solid ${T.border}`,
+                  padding: '11px 12px', background: T.bgDeep, border: `1px solid ${T.border}`,
                   borderRadius: 8, color: T.text, fontSize: 13, cursor: 'pointer',
                   transition: 'background 0.12s' }}
                 onMouseEnter={e => (e.currentTarget.style.background = T.bgHover)}
@@ -420,7 +577,7 @@ export default function NovaMartDashboard() {
           </div>
           {sales.slice(0, 4).map(o => (
             <div key={o.id} onClick={() => setSelectedSaleId(o.id)}
-              style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0',
+              style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0',
                 borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 500, color: T.text }}>#{o.id.slice(0, 8)}</div>
@@ -450,12 +607,12 @@ export default function NovaMartDashboard() {
               All stock healthy ✓
             </p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[...outOfStockItems.slice(0, 2), ...lowStockItems.slice(0, 3)].map(p => (
                 <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between',
-                  alignItems: 'center' }}>
+                  alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 12, color: T.text, overflow: 'hidden',
-                    textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 150 }}>{p.n}</span>
+                    textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{p.n}</span>
                   <Badge
                     label={p.s === 0 ? 'Out' : `${p.s} left`}
                     color={p.s === 0 ? T.red : T.amber}
@@ -472,15 +629,15 @@ export default function NovaMartDashboard() {
 
   const renderAnalytics = () => (
     <div style={{ animation: 'fadeUp 0.25s ease' }}>
-      <h2 style={{ fontSize: 24, fontWeight: 600, marginBottom: 18,
+      <h2 style={{ fontSize: 22, fontWeight: 600, marginBottom: 16,
         fontFamily: '"Cormorant Garamond", serif', color: T.text }}>Analytics</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+      <div className="nm-analytics-grid">
         {/* Bar chart */}
-        <div style={{ ...card, gridColumn: 'span 2' }}>
+        <div className="nm-analytics-span2" style={card}>
           <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: T.text }}>
             Sales Trend — Last 7 Days
           </h3>
-          <div style={{ height: 180, display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+          <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', gap: 6 }}>
             {[65, 45, 78, 52, 89, 73, 95].map((h, i) => (
               <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column',
                 alignItems: 'center', gap: 6 }}>
@@ -524,12 +681,38 @@ export default function NovaMartDashboard() {
   const renderSales = () => (
     <div style={{ animation: 'fadeUp 0.25s ease' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginBottom: 16 }}>
-        <h2 style={{ fontSize: 24, fontWeight: 600, fontFamily: '"Cormorant Garamond", serif',
+        marginBottom: 14 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 600, fontFamily: '"Cormorant Garamond", serif',
           color: T.text }}>Sales</h2>
         <span style={{ fontSize: 12, color: T.textMid }}>{sales.length} records</span>
       </div>
-      <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+
+      {/* Mobile: stacked cards */}
+      <div className="nm-card-list">
+        {sales.map(o => (
+          <div key={o.id} onClick={() => setSelectedSaleId(o.id)} style={{ ...mobileCard, cursor: 'pointer' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+              <div>
+                <div style={{ fontFamily: 'monospace', fontSize: 12, color: T.textMid }}>#{o.id.slice(0, 8)}</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: T.text, marginTop: 2 }}>{o.customer_name || 'Walk-in'}</div>
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: T.accent }}>{fmt(o.total)}</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Badge label={o.method || 'cash'} color={T.blue} bg={`${T.blue}14`} />
+              <span style={{ fontSize: 11, color: T.textMid }}>
+                {new Date(o.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          </div>
+        ))}
+        {sales.length === 0 && (
+          <p style={{ padding: '40px 0', textAlign: 'center', color: T.textMid, fontSize: 13 }}>No sales found</p>
+        )}
+      </div>
+
+      {/* Tablet+: full table */}
+      <div className="nm-table-wrap" style={{ ...card, padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%' }}>
             <thead>
@@ -589,15 +772,14 @@ export default function NovaMartDashboard() {
 
     return (
       <div style={{ animation: 'fadeUp 0.25s ease' }}>
-        <h2 style={{ fontSize: 24, fontWeight: 600, marginBottom: 16,
+        <h2 style={{ fontSize: 22, fontWeight: 600, marginBottom: 14,
           fontFamily: '"Cormorant Garamond", serif', color: T.text }}>Inventory</h2>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: 12, marginBottom: 16 }}>
+        <div className="nm-inventory-stat-grid">
           {inventoryStats.map(({ label, value, color }) => (
             <div key={label} style={card}>
               <div style={{ fontSize: 11, color: T.textMid, marginBottom: 6 }}>{label}</div>
-              <div style={{ fontSize: 26, fontWeight: 600, color,
+              <div style={{ fontSize: 22, fontWeight: 600, color,
                 fontFamily: '"Cormorant Garamond", serif' }}>{value}</div>
             </div>
           ))}
@@ -608,18 +790,19 @@ export default function NovaMartDashboard() {
           <div style={{ display: 'grid', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
             {[...outOfStockItems, ...lowStockItems].slice(0, 12).map(p => (
               <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between',
-                alignItems: 'center', padding: '8px 12px', background: T.bgDeep, borderRadius: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                alignItems: 'center', gap: 8, padding: '8px 12px', background: T.bgDeep, borderRadius: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                   <div style={{ width: 28, height: 28, borderRadius: 6, background: T.bgCard,
-                    display: 'grid', placeItems: 'center', fontSize: 12, color: T.textMid }}>
+                    display: 'grid', placeItems: 'center', fontSize: 12, color: T.textMid, flexShrink: 0 }}>
                     {p.n?.[0] ?? '?'}
                   </div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{p.n}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: T.text, overflow: 'hidden',
+                      textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.n}</div>
                     <div style={{ fontSize: 11, color: T.textMid }}>{p.c || 'General'}</div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   <Badge
                     label={p.s === 0 ? 'Out' : `${p.s} left`}
                     color={p.s === 0 ? T.red : T.amber}
@@ -646,9 +829,37 @@ export default function NovaMartDashboard() {
 
   const renderCustomers = () => (
     <div style={{ animation: 'fadeUp 0.25s ease' }}>
-      <h2 style={{ fontSize: 24, fontWeight: 600, marginBottom: 16,
+      <h2 style={{ fontSize: 22, fontWeight: 600, marginBottom: 14,
         fontFamily: '"Cormorant Garamond", serif', color: T.text }}>Customers</h2>
-      <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+
+      {/* Mobile: stacked cards */}
+      <div className="nm-card-list">
+        {customers.map(c => (
+          <div key={c.id} style={mobileCard}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%',
+                background: `${T.accent}1e`, display: 'grid', placeItems: 'center',
+                fontSize: 12, fontWeight: 600, color: T.accent, flexShrink: 0 }}>
+                {c.name?.[0] ?? '?'}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{c.name || 'Walk-in'}</div>
+                <div style={{ fontSize: 11, color: T.textMid }}>{c.phone || '—'}</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+              <span style={{ color: T.textMid }}>{c.visit_count ?? 0} visits · {c.last_visit ? new Date(c.last_visit).toLocaleDateString() : 'no visits yet'}</span>
+              <span style={{ fontWeight: 600, color: T.accent }}>{fmt(c.total_spent ?? 0)}</span>
+            </div>
+          </div>
+        ))}
+        {customers.length === 0 && (
+          <p style={{ padding: '40px 0', textAlign: 'center', color: T.textMid, fontSize: 13 }}>No customers yet</p>
+        )}
+      </div>
+
+      {/* Tablet+: full table */}
+      <div className="nm-table-wrap" style={{ ...card, padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%' }}>
             <thead>
@@ -697,34 +908,97 @@ export default function NovaMartDashboard() {
 
   const renderProducts = () => (
     <div style={{ animation: 'fadeUp 0.25s ease' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+      <div className="nm-products-toolbar">
         <div>
-          <h2 style={{ fontSize: 24, fontWeight: 600, fontFamily: '"Cormorant Garamond", serif',
+          <h2 style={{ fontSize: 22, fontWeight: 600, fontFamily: '"Cormorant Garamond", serif',
             color: T.text }}>Products</h2>
           <p style={{ fontSize: 12, color: T.textMid, marginTop: 2 }}>
             {filteredProducts.length} of {products.length}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="nm-products-actions">
           <input
+            className="nm-search-input"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search..."
-            style={{ padding: '8px 12px', background: T.bgCard, border: `1px solid ${T.border}`,
-              borderRadius: 8, color: T.text, fontSize: 13, width: 200, outline: 'none' }}
+            style={{ padding: '9px 12px', background: T.bgCard, border: `1px solid ${T.border}`,
+              borderRadius: 8, color: T.text, fontSize: 13, outline: 'none' }}
           />
           <button onClick={() => openCrudModal()} type="button"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px',
               background: T.accent, color: T.accentText, border: 'none', borderRadius: 8,
-              fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+              fontSize: 13, fontWeight: 500, cursor: 'pointer', flexShrink: 0 }}>
             <Icon d="M12 4v16m8-8H4" size={14} />
             Add
           </button>
         </div>
       </div>
 
-      <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+      {/* Mobile: stacked cards */}
+      <div className="nm-card-list">
+        {filteredProducts.map(p => (
+          <div key={p.id} style={mobileCard}>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 8, background: T.bgCard,
+                display: 'grid', placeItems: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                {p.image_url
+                  ? <img src={p.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <span style={{ fontSize: 16, color: T.textMid }}>{p.n?.[0] ?? '?'}</span>
+                }
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 500, color: T.text, overflow: 'hidden',
+                      textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.n}</div>
+                    <div style={{ fontSize: 11, color: T.textMid }}>{p.c || '—'}</div>
+                  </div>
+                  <Badge
+                    label={String(p.s ?? 0)}
+                    color={(p.s ?? 0) === 0 ? T.red : (p.s ?? 0) <= 5 ? T.amber : T.green}
+                    bg={(p.s ?? 0) === 0 ? `${T.red}14` : (p.s ?? 0) <= 5 ? `${T.amber}14` : `${T.green}14`}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                  <span style={{ fontWeight: 600, fontFamily: '"Cormorant Garamond", serif', color: T.text }}>
+                    {fmt(p.p ?? 0)}
+                  </span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => openCrudModal(p)} type="button"
+                      style={{ padding: '5px 10px', background: 'none', border: `1px solid ${T.border}`,
+                        borderRadius: 6, fontSize: 11, color: T.textMid, cursor: 'pointer' }}>
+                      Edit
+                    </button>
+                    <button onClick={() => deleteProduct(p.id, p.n)} type="button"
+                      style={{ padding: '5px 10px', background: 'none', border: `1px solid ${T.border}`,
+                        borderRadius: 6, fontSize: 11, color: T.red, cursor: 'pointer' }}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+        {filteredProducts.length === 0 && (
+          <div style={{ padding: '48px 20px', textAlign: 'center' }}>
+            <p style={{ fontSize: 14, color: T.textMid, marginBottom: 8 }}>
+              {search ? 'No products found' : 'No products yet'}
+            </p>
+            {!search && (
+              <button onClick={() => openCrudModal()} type="button"
+                style={{ fontSize: 13, color: T.accent, background: 'none',
+                  border: 'none', cursor: 'pointer', fontWeight: 500 }}>
+                Add your first product →
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Tablet+: full table */}
+      <div className="nm-table-wrap" style={{ ...card, padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%' }}>
             <thead>
@@ -830,11 +1104,11 @@ export default function NovaMartDashboard() {
         <header style={{ position: 'sticky', top: 0, zIndex: 40,
           background: `${T.bgCard}F0`, backdropFilter: 'blur(14px)',
           borderBottom: `1px solid ${T.border}` }}>
-          <div style={{ height: 62, padding: '0 24px', display: 'flex', alignItems: 'center',
+          <div className="nm-header-inner" style={{ display: 'flex', alignItems: 'center',
             justifyContent: 'space-between', maxWidth: 1400, margin: '0 auto', width: '100%' }}>
 
             {/* Left: hamburger + logo */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button onClick={() => setSidebarOpen(true)} aria-label="Open menu" type="button"
                 style={{ background: 'none', border: 'none', color: T.textMid,
                   cursor: 'pointer', padding: 6, borderRadius: 6, display: 'grid', placeItems: 'center' }}>
@@ -844,80 +1118,83 @@ export default function NovaMartDashboard() {
               <button onClick={() => setSection('dashboard')} type="button"
                 style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none',
                   border: 'none', cursor: 'pointer', padding: 0 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 8, display: 'grid',
+                <div style={{ width: 32, height: 32, borderRadius: 8, display: 'grid',
                   placeItems: 'center', background: `linear-gradient(135deg, ${T.accent}, ${T.amber})`,
-                  color: T.accentText, fontWeight: 700, fontSize: 17,
+                  color: T.accentText, fontWeight: 700, fontSize: 16,
                   fontFamily: '"Cormorant Garamond", serif' }}>N</div>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontWeight: 600, fontSize: 15, lineHeight: 1,
-                    fontFamily: '"Cormorant Garamond", serif', color: T.text }}>NovaMart</div>
-                  <div style={{ fontSize: 9, color: T.textMid, letterSpacing: 1.2,
-                    textTransform: 'uppercase' }}>Admin</div>
-                </div>
+                <span className="nm-logo-text" style={{ fontSize: 18, fontWeight: 600, color: T.text }}>
+                  NovaMart
+                </span>
               </button>
             </div>
 
-            {/* Center: nav */}
-            <nav style={{ display: 'flex', gap: 2 }}>
-              {NAV.map(({ id, label, d }) => {
-                const active = section === id;
-                return (
-                  <button key={id} onClick={() => setSection(id)} aria-label={label} type="button"
-                    style={{ display: 'flex', alignItems: 'center', gap: 6,
-                      padding: '7px 13px', borderRadius: 8,
-                      background: active ? T.accent : 'transparent',
-                      color: active ? T.accentText : T.textMid,
-                      border: 'none', fontSize: 13, fontWeight: 500,
-                      cursor: 'pointer', transition: 'all 0.12s' }}
-                    onMouseEnter={e => { if (!active) e.currentTarget.style.background = T.bgHover; }}
-                    onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
-                    <Icon d={d} size={13} />
-                    {label}
-                  </button>
-                );
-              })}
+            {/* Center: Desktop nav */}
+            <nav className="nm-desktop-nav">
+              {NAV.map(item => (
+                <button key={item.id} onClick={() => setSection(item.id)} type="button"
+                  style={{
+                    padding: '8px 14px', borderRadius: 6, border: 'none',
+                    background: section === item.id ? T.bgHover : 'transparent',
+                    color: section === item.id ? T.text : T.textMid,
+                    fontWeight: 500, fontSize: 13, cursor: 'pointer',
+                    transition: 'background 0.2s, color 0.2s',
+                  }}>
+                  {item.label}
+                </button>
+              ))}
             </nav>
 
-            {/* Right: controls */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button onClick={() => setIsDark(v => !v)} aria-label="Toggle theme" type="button"
-                style={{ width: 34, height: 34, borderRadius: 8, background: 'none',
-                  border: `1px solid ${T.border}`, color: T.textMid,
-                  display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 14 }}>
-                {isDark ? '☀' : '🌙'}
+            {/* Right: Theme toggle & user */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button onClick={() => setIsDark(d => !d)} type="button" aria-label="Toggle theme"
+                style={{ background: T.bgDeep, border: `1px solid ${T.border}`, borderRadius: 8,
+                  width: 36, height: 36, display: 'grid', placeItems: 'center', cursor: 'pointer', color: T.textMid }}>
+                <Icon d={isDark ? 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z' : 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z'} size={16} />
               </button>
-              <button onClick={() => router.push('/store')} type="button"
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px',
-                  background: T.accent, color: T.accentText, border: 'none',
-                  borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
-                <Icon d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" size={13} />
-                STORE
-              </button>
+
+              <span className="nm-store-label" style={{ fontSize: 12, color: T.textMid, textAlign: 'right' }}>
+                <span style={{ display: 'block', fontSize: 11, color: T.textMute }}>Store</span>
+                {profile?.branchName ?? 'Main'}
+              </span>
             </div>
           </div>
         </header>
 
-        {/* ── Main ── */}
-        <main style={{ flex: 1, maxWidth: 1400, margin: '0 auto',
-          width: '100%', padding: '24px' }}>
+        {/* ── Main content ── */}
+        <main className="nm-main" style={{ flex: 1, maxWidth: 1400, margin: '0 auto', width: '100%' }}>
           {SECTIONS[section]()}
         </main>
+
+        {/* ── Mobile Tab Bar ── */}
+        <nav className="nm-tabbar">
+          {NAV.filter(item => TAB_BAR_IDS.includes(item.id)).map(item => {
+            const isActive = section === item.id;
+            return (
+              <button key={item.id} onClick={() => setSection(item.id)} type="button" className="nm-tab"
+                style={{ color: isActive ? T.accent : T.textMid }}>
+                <Icon d={item.d} size={20} stroke={isActive ? T.accent : 'currentColor'} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
       {/* ── Modals ── */}
       <ProductCrudModal />
       {selectedSaleId && (
-        <OrderDetailModal orderId={selectedSaleId} onClose={() => setSelectedSaleId(null)} />
+        <OrderDetailModal
+          orderId={selectedSaleId}
+          onClose={() => setSelectedSaleId(null)}
+        />
       )}
 
       {/* ── Toast ── */}
       {toast && (
-        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-          background: T.bgCard, border: `1px solid ${T.accent}`, color: T.text,
-          padding: '10px 16px', borderRadius: 8, fontSize: 13, zIndex: 200,
-          boxShadow: '0 8px 28px rgba(0,0,0,0.22)', display: 'flex', alignItems: 'center', gap: 8,
-          animation: 'fadeUp 0.2s ease', whiteSpace: 'nowrap' }}>
-          <Icon d="M5 13l4 4L19 7" size={15} stroke={T.green} />
+        <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)',
+          background: T.text, color: T.bg, padding: '10px 20px', borderRadius: 8,
+          fontSize: 13, fontWeight: 500, boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+          zIndex: 100, animation: 'fadeUp 0.2s ease' }}>
           {toast}
         </div>
       )}

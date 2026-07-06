@@ -115,7 +115,7 @@ export const usePosStore = create<POSState>()(
             const { data, error } = await supabase
               .from('products')
               .select(`
-                id, name, category, barcode, price, stock, cost, is_variable_price, image_url,  variants ( id, variant_name, price )
+                id, name, category, barcode, price, stock, cost, is_variable_price, image_url,
                 variants ( id, variant_name, price )
               `)
               .eq('branch_id', branchId)
@@ -200,9 +200,9 @@ export const usePosStore = create<POSState>()(
           items[key].qty += 1;
         } else {
           items[key] = {
-  id: p.id, n: p.n, b: p.b ?? '', p: finalPrice,
-  v_name: v ? v.n : null, vid: v ? String(v.id) : null, qty: 1,
-};
+            id: p.id, n: p.n, b: p.b ?? '', p: finalPrice,
+            v_name: v ? v.n : null, vid: v ? String(v.id) : null, qty: 1,
+          };
         }
 
         if (items[key].qty === 0) delete items[key];
@@ -300,6 +300,9 @@ export const usePosStore = create<POSState>()(
           customer_phone: customerPhone || null,
         };
 
+        // Locally decrement stock immediately so the UI/receipt reflects the sale.
+        // The authoritative decrement happens server-side in processQueue via
+        // the decrement_product_stock RPC.
         const newProducts = state.products.map((p) => {
           const cartItem = items.find((i) => i.id === p.id);
           return cartItem ? { ...p, s: p.s - cartItem.qty } : p;
@@ -315,6 +318,11 @@ export const usePosStore = create<POSState>()(
           },
           mobileView: 'cart',
         });
+
+        // Fire the sync immediately instead of waiting on something else to
+        // trigger it — this is what was missing, causing stock to look
+        // "reduced" locally but never actually update in Supabase.
+        get().processQueue();
       },
 
       processQueue: async () => {
@@ -368,8 +376,40 @@ export const usePosStore = create<POSState>()(
           const { error: itemsErr } = await supabase.from('order_items').insert(itemsToInsert);
           if (itemsErr) throw new Error(itemsErr.message || JSON.stringify(itemsErr));
 
+          // Decrement stock server-side now that the order + items are confirmed
+          // persisted. Aggregate by product id since stock lives on the product,
+          // not the variant, and a cart can contain multiple variants of one product.
+          const qtyByProduct = orderToSync.items.reduce((acc: Record<string, number>, item) => {
+            acc[item.id] = (acc[item.id] || 0) + item.qty;
+            return acc;
+          }, {});
+
+          const stockResults = await Promise.all(
+            Object.entries(qtyByProduct).map(([productId, qty]) =>
+              supabase.rpc('decrement_product_stock', { p_id: productId, qty })
+            )
+          );
+
+          const stockErr = stockResults.find((r) => r.error)?.error;
+          if (stockErr) {
+            // Don't block queue progression on this — the order itself is already
+            // committed. Log loudly so it can be reconciled/fixed manually.
+            console.error(
+              `[Supabase] Stock decrement failed for order ${orderToSync.id}:`,
+              stockErr.message
+            );
+          }
+
           usePosStore.setState({ queue: usePosStore.getState().queue.slice(1) });
           console.log(`[Supabase] Order ${orderToSync.id} synced.`);
+
+          // If more orders are queued, keep draining without waiting for the
+          // next manual trigger or interval tick.
+          if (usePosStore.getState().queue.length > 0) {
+            set({ syncing: false });
+            get().processQueue();
+            return;
+          }
         } catch (error: any) {
           const msg = error.message || JSON.stringify(error);
           if (msg.includes('duplicate key') || msg.includes('409')) {
